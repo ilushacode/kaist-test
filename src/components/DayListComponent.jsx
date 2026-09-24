@@ -7,17 +7,8 @@ const DAY_NAMES = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
 const GAP = 8;           // 0.5rem
 const EDGE_PADDING = 16; // 1rem
 
-export const DayListComponent = () => {
+export const DayListComponent = ({ today, selectedDate, setSelectedDate }) => {
   const parentRef = useRef(null);
-
-  // Сегодняшняя дата без времени — стабильная ссылка на весь жизненный цикл
-  const today = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-
-  const [selectedDate, setSelectedDate] = useState(today);
 
   // Понедельник текущей недели
   const startOfWeek = useMemo(() => {

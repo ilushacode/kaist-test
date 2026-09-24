@@ -10,6 +10,158 @@
 }
 
 
+/* LOADER */
+
+.loader {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-color);
+}
+.loader__title {
+  font-family: "DynaPuff", system-ui;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+  font-size: 6rem;
+  color: white;
+}
+
+
+/* SET GROUP */
+
+.set_group {
+  height: 100%;
+  width: 100%;
+  background-color: var(--background-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1.5rem;
+  padding-top: 3rem;
+}
+.set_group__inner {
+  position: relative;
+  width: 100%;
+  max-width: 26rem;
+  display: flex;
+  flex-direction: column;
+  animation: setGroupFadeIn 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes setGroupFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.set_group__title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.set_group__subtitle {
+  text-align: center;
+  color: var(--light-font-color);
+  font-size: 1.05rem;
+  margin-top: 0.4rem;
+}
+
+.set_group__form {
+  position: relative;
+  margin-top: 2.25rem;
+  width: 100%;
+}
+.set_group__input {
+  width: 100%;
+  font-size: 1.3rem;
+  padding: 0.85rem 1.2rem;
+  border-radius: 1.2rem;
+  outline: none;
+  border: 2px solid var(--primary-color);
+  background-color: var(--accent-background-color);
+  color: var(--font-color);
+  transition: border-color 0.2s, box-shadow 0.25s, transform 0.15s;
+  box-shadow: 0 6px 18px -12px var(--primary-color);
+}
+.set_group__input::placeholder {
+  color: var(--light-font-color);
+}
+.set_group__input:focus {
+  box-shadow: 0 10px 28px -12px var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.set_group__dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+
+  background-color: var(--accent-background-color);
+  border-radius: 1.2rem;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.35);
+  max-height: 16rem;
+  overflow-y: auto;
+  z-index: 10;
+
+  animation: setGroupDropdown 0.18s ease-out;
+}
+
+@keyframes setGroupDropdown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.set_group__dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.set_group__dropdown::-webkit-scrollbar-thumb {
+  background-color: var(--light-font-color);
+  border-radius: 3px;
+  opacity: 0.4;
+}
+.set_group__option {
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--font-color);
+  transition: background-color 0.15s, color 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.set_group__option:hover,
+.set_group__option:active {
+  background-color: var(--primary-color);
+  color: var(--background-color);
+}
+.set_group__option:active {
+  transform: scale(0.985);
+}
+
+.set_group__empty {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  padding: 0.85rem 1rem;
+  background-color: var(--accent-background-color);
+  border-radius: 1.2rem;
+  color: var(--light-font-color);
+  font-size: 0.95rem;
+  text-align: center;
+  box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.25);
+  animation: setGroupDropdown 0.18s ease-out;
+}
+
+
 /* HEADER */
 
 .header {
@@ -20,7 +172,7 @@
 }
 .header__left__title {
   font-weight: 600;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   letter-spacing: 5%;
 }
 .header__left__group {
@@ -115,7 +267,6 @@
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 }
 
 .schedule_lesson {
@@ -125,7 +276,7 @@
 }
 
 .schedule_lesson__times {
-  flex: 0 0 2.5rem;
+  width: 13vw;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -177,6 +328,9 @@
   background-color: var(--primary-color);
 }
 
+.schedule_lesson__content__wrapper {
+  padding-bottom: 1rem;
+}
 .schedule_lesson__content {
   flex: 1;
   min-width: 0;
@@ -186,8 +340,8 @@
 }
 
 .schedule_lesson__content__title {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .schedule_lesson__content__type {
@@ -201,6 +355,9 @@
 .schedule_lesson__content__type >
 span {
   color: var(--background-color);
+  opacity: .5;
+}
+.schedule_lesson__past {
   opacity: .5;
 }
 
