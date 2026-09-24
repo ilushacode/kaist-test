@@ -7,15 +7,13 @@ import "../Install.css";
  *
  * @param {string|null} osOverride      — принудительная ОС ("ios" | "android" | "other")
  * @param {string|null} browserOverride — принудительный браузер ("safari" | "chrome" | ...)
- *
- * Override-параметры приходят из URL (?os=...&browser=...) и работают
- * только в dev-режиме — их читает App.jsx и передаёт сюда пропсами.
  */
 function detectPlatform(osOverride = null, browserOverride = null) {
   if (typeof navigator === "undefined") {
     return {
       os: osOverride ?? "other",
       browser: browserOverride ?? "other",
+      isInstallable: false,
     };
   }
 
@@ -30,18 +28,32 @@ function detectPlatform(osOverride = null, browserOverride = null) {
   if (/CriOS/i.test(ua)) browser = "chrome";
   else if (/FxiOS/i.test(ua)) browser = "firefox";
   else if (/EdgiOS/i.test(ua)) browser = "edge";
+  else if (/YaBrowser/i.test(ua)) browser = "yandex";
   else if (/OPiOS|OPR|Opera/i.test(ua)) browser = "opera";
   else if (/SamsungBrowser/i.test(ua)) browser = "samsung";
   else if (/Edg\//i.test(ua)) browser = "edge";
   else if (/Firefox|FxiOS/i.test(ua)) browser = "firefox";
-  else if (/Chrome/i.test(ua) && !/Edg|OPR|SamsungBrowser/i.test(ua)) browser = "chrome";
+  else if (/Chrome/i.test(ua) && !/Edg|OPR|SamsungBrowser|YaBrowser/i.test(ua)) browser = "chrome";
   else if (/Safari/i.test(ua)) browser = "safari";
 
-  // Переопределение из URL (?os=...&browser=...)
+  // Переопределение из URL (работает только в dev)
   if (osOverride) os = osOverride;
   if (browserOverride) browser = browserOverride;
 
-  return { os, browser };
+  /**
+   * Ключевая логика: PWA ставится только в «родной» браузер платформы.
+   *
+   *  iOS      → только Safari
+   *  Android  → только Chrome
+   *  Desktop  → сюда не попадаем (InstallScreen для десктопа — только гайд)
+   *
+   *  Всё остальное — ярлык или ничего.
+   */
+  const isInstallable =
+    (os === "ios" && browser === "safari") ||
+    (os === "android" && browser === "chrome");
+
+  return { os, browser, isInstallable };
 }
 
 /**
@@ -61,11 +73,12 @@ function getInstallSteps(os, browser) {
       "Откройте эту страницу в Safari",
       "Нажмите «Поделиться» ⎋",
       'Выберите «На экран "Домой"»',
+      "Нажмите «Добавить»",
     ];
   }
 
   if (os === "android") {
-    if (["chrome", "samsung", "edge", "opera"].includes(browser)) {
+    if (browser === "chrome") {
       return [
         "Откройте меню браузера ⋮",
         "Выберите «Установить приложение»",
@@ -87,11 +100,6 @@ function getInstallSteps(os, browser) {
   ];
 }
 
-/**
- * @param {boolean}     isMobile        — true для мобильной раскладки
- * @param {string|null} osOverride      — dev-override ОС из URL (?os=...)
- * @param {string|null} browserOverride — dev-override браузера (?browser=...)
- */
 export const InstallScreen = ({
   isMobile,
   osOverride = null,
@@ -105,13 +113,24 @@ export const InstallScreen = ({
     [osOverride, browserOverride]
   );
 
+  /**
+   * beforeinstallprompt приходит в Chrome и Yandex/Opera/Samsung.
+   * Но нативный prompt корректно работает ТОЛЬКО в «родном» браузере
+   * (Chrome на Android / Safari на iOS). В остальных — браузер создаст
+   * ярлык, а не PWA. Поэтому слушаем событие всегда, но используем
+   * его, только если platform.isInstallable === true.
+   */
   useEffect(() => {
     if (!isMobile) return;
 
     const onBeforeInstall = (e) => {
       e.preventDefault();
+      // Если браузер неродной — не сохраняем событие.
+      // Иначе пользователь увидит кнопку, ведущую к ярлыку.
+      if (!platform.isInstallable) return;
       setDeferredPrompt(e);
     };
+
     const onInstalled = () => {
       setInstalled(true);
       setDeferredPrompt(null);
@@ -123,7 +142,7 @@ export const InstallScreen = ({
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
     };
-  }, [isMobile]);
+  }, [isMobile, platform.isInstallable]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -138,12 +157,21 @@ export const InstallScreen = ({
     [platform]
   );
 
-  const canUseNativePrompt = isMobile && Boolean(deferredPrompt);
+  /**
+   * Кнопку показываем ТОЛЬКО когда:
+   *  1. Мы в мобильной раскладке,
+   *  2. Браузер — родной для PWA (Chrome на Android, Safari на iOS),
+   *  3. Браузер реально прислал beforeinstallprompt.
+   *
+   * Иначе — только гайд.
+   */
+  const showInstallButton =
+    isMobile && platform.isInstallable && Boolean(deferredPrompt);
+
   const url = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
     <div className="install theme_light">
-      {/* Декоративные кляксы на фоне */}
       <div className="install__blob install__blob--1" aria-hidden="true" />
       <div className="install__blob install__blob--2" aria-hidden="true" />
       <div className="install__blob install__blob--3" aria-hidden="true" />
@@ -203,7 +231,8 @@ export const InstallScreen = ({
                   </div>
                 ) : (
                   <>
-                    {canUseNativePrompt && (
+                    {/* Кнопка — только если браузер родной и событие пришло */}
+                    {showInstallButton && (
                       <button
                         type="button"
                         className="install__button"
@@ -213,6 +242,7 @@ export const InstallScreen = ({
                       </button>
                     )}
 
+                    {/* Шаги — всегда (пока не установлено) */}
                     <ol className="install__steps">
                       {steps.map((step, i) => (
                         <li key={i} className="install__steps__item">
@@ -227,7 +257,7 @@ export const InstallScreen = ({
             )}
           </div>
 
-          {/* ---------- ПРАВАЯ КОЛОНКА ----- */}
+          {/* ---------- ПРАВАЯ КОЛОНКА ---------- */}
           <div className="install__content__right">
             <div className="install__mockup">
               <div className="install__mockup__glow" aria-hidden="true" />
