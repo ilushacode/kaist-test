@@ -4,17 +4,29 @@ import {
   GraduationCap,
   Send,
   BookOpenText,
+  ChevronRight,
 } from 'lucide-react';
-import { ChevronRight } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { useModal } from '../providers/ModalProvider';
 import GroupsModal from './GroupsModal';
+import { TELEGRAM_CHANNEL } from '../config';
+
+const SoonBadge = () => (
+  <span
+    style={{
+      backgroundColor: '#dde1ef',
+      padding: '.2rem .5rem',
+      borderRadius: '.5rem',
+    }}
+  >
+    Скоро
+  </span>
+);
 
 export default function MenuModal({ closeModal }) {
-  const { openModal } = useModal()
+  const { openModal } = useModal();
   const selectedGroup = useStore((s) => s.selectedGroup);
 
-  // Пункт: { icon, color, title, callback?, right? }
   const sections = [
     [
       {
@@ -31,22 +43,19 @@ export default function MenuModal({ closeModal }) {
         icon: UserGroup,
         color: '#db960c',
         title: 'Одногруппники',
-        right: <span style={{backgroundColor: '#dde1ef', padding: '.2rem .5rem', borderRadius: '.5rem'}}>Скоро</span>,
-        // callback: () => console.log('appearance'),
+        right: <SoonBadge />,
       },
       {
         icon: BookOpenText,
         color: '#0cdb39',
         title: 'Экзамены',
-        right: <span style={{backgroundColor: '#dde1ef', padding: '.2rem .5rem', borderRadius: '.5rem'}}>Скоро</span>,
-        // callback: () => console.log('appearance'),
+        right: <SoonBadge />,
       },
       {
         icon: GraduationCap,
         color: '#ac2eeb',
         title: 'Преподаватели',
-        right: <span style={{backgroundColor: '#dde1ef', padding: '.2rem .5rem', borderRadius: '.5rem'}}>Скоро</span>,
-        // callback: () => console.log('language'),
+        right: <SoonBadge />,
       },
     ],
     [
@@ -55,9 +64,11 @@ export default function MenuModal({ closeModal }) {
         color: '#0088CC',
         title: 'Telegram',
         callback: () => {
-          // Укажи username своего канала без @
-          const channelUsername = 'kaist_app'; // например
-          window.open(`https://t.me/${channelUsername}`, '_blank', 'noopener,noreferrer');
+          window.open(
+            `https://t.me/${TELEGRAM_CHANNEL}`,
+            '_blank',
+            'noopener,noreferrer'
+          );
         },
       },
     ],
@@ -66,7 +77,7 @@ export default function MenuModal({ closeModal }) {
   const handleClick = (item) => {
     if (!item.callback) return;
     item.callback();
-    if (!item.keepOn) closeModal()
+    if (!item.keepOn) closeModal();
   };
 
   return (

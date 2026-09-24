@@ -1,83 +1,69 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { useStore } from "./useStore";
-
-const TIMEOUT_MS = 3000;
-const API_URL = "https://api-kaist.duodev.space/schedule/range";
-const RANGE_DAYS = 14;
-
-// Date -> "DD.MM"
-const formatDM = (date) => {
-  const d = String(date.getDate()).padStart(2, "0");
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  return `${d}.${m}`;
-};
-
-// Строит "01.09-14.09" на основе старта и количества дней (включительно)
-const formatRange = (startDate, days = RANGE_DAYS) => {
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + days - 1); // 14 дней включая старт
-
-  return `${formatDM(start)}-${formatDM(end)}`;
-};
+import { useEffect, useState } from 'react';
+import { useStore } from './useStore';
+import { fetchRangeSchedule } from '../api/schedule';
+import { isCancelError } from '../api/client';
+import { formatDateRange } from '../utils/date';
+import { BOOTSTRAP_RANGE_DAYS, BOOTSTRAP_TIMEOUT_MS } from '../config';
 
 // Стабильный ключ от списка групп — чтобы useEffect не срабатывал
 // на каждый новый массив с теми же значениями
-const groupsKey = (groups) => groups.join("|");
+const groupsKey = (groups) => groups.join('|');
 
+/**
+ * Загружает расписание на 14 дней вперёд для всех групп.
+ * Возвращает true, когда данные готовы (или bootstrap завершился с ошибкой).
+ *
+ * @param {Date} today — сегодняшняя дата (стабильная ссылка)
+ */
 export default function useBootstrap(today) {
   const groups = useStore((s) => s.groups);
   const [ready, setReady] = useState(false);
 
   const key = groupsKey(groups);
+  const todayTs = today.getTime();
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
 
-    // Сбрасываем ready при каждом новом наборе групп.
-    // Пока новый range не приедет — App покажет LoaderScreen,
-    // а ScheduleComponent не будет дёргать /schedule/day.
     setReady(false);
 
     (async () => {
       const {
-        groups,
+        groups: currentGroups,
         needsUpdate,
         replaceCache,
         setGroupSchedule,
+        scheduleCache,
       } = useStore.getState();
 
-      if (groups.length === 0) {
+      if (currentGroups.length === 0) {
         if (!cancelled) setReady(true);
         return;
       }
 
-      const dateParam = formatRange(today); // "24.09-07.10"
+      const dateParam = formatDateRange(today, BOOTSTRAP_RANGE_DAYS);
+      const shouldReplaceAll = needsUpdate();
 
       try {
         const results = await Promise.all(
-          groups.map(async (number) => {
-            const cached = useStore.getState().scheduleCache[number];
-            if (cached && !needsUpdate()) {
+          currentGroups.map(async (number) => {
+            const cached = scheduleCache[number];
+            if (cached && !shouldReplaceAll) {
               return [number, cached];
             }
 
-            const { data } = await axios.get(API_URL, {
-              params: { group: number, dates: dateParam },
+            const days = await fetchRangeSchedule(number, dateParam, {
               signal: controller.signal,
-              timeout: TIMEOUT_MS,
+              timeout: BOOTSTRAP_TIMEOUT_MS,
             });
-            return [number, data.days ?? {}];
+            return [number, days];
           })
         );
 
         if (cancelled) return;
 
-        if (needsUpdate()) {
+        if (shouldReplaceAll) {
           replaceCache(Object.fromEntries(results));
         } else {
           for (const [number, days] of results) {
@@ -85,8 +71,8 @@ export default function useBootstrap(today) {
           }
         }
       } catch (err) {
-        if (axios.isCancel?.(err) || err.name === "CanceledError") return;
-        console.warn("Bootstrap: используем старый кэш.", err);
+        if (isCancelError(err)) return;
+        console.warn('Bootstrap: используем старый кэш.', err);
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -96,7 +82,7 @@ export default function useBootstrap(today) {
       cancelled = true;
       controller.abort();
     };
-  }, [key, today]);
+  }, [key, todayTs]);
 
   return ready;
 }

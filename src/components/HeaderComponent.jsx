@@ -1,16 +1,14 @@
-import { Menu } from "lucide-react"
-import { useStore } from "../hooks/useStore";
+import { Menu } from 'lucide-react';
+import { useStore } from '../hooks/useStore';
 import { useModal } from '../providers/ModalProvider';
-import MenuModal from "../modals/MenuModal";
-
+import MenuModal from '../modals/MenuModal';
 
 export const HeaderComponent = () => {
-
   const selectedGroup = useStore((s) => s.selectedGroup);
-  const { openModal } = useModal()
+  const { openModal } = useModal();
 
   const handleOpenMenu = () => {
-    openModal(MenuModal, {});
+    openModal(MenuModal);
   };
 
   return (
@@ -24,5 +22,5 @@ export const HeaderComponent = () => {
         <Menu />
       </div>
     </div>
-  )
-}
+  );
+};

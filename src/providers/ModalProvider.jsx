@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
 const ModalContext = createContext(null);
@@ -27,13 +33,13 @@ export function ModalProvider({ children }) {
     e.stopPropagation();
   }, []);
 
-  const handleDragEnd = useCallback((event, info) => {
-    const shouldClose =
-      info.offset.y > 120 || info.velocity.y > 500;
-    if (shouldClose) {
-      closeModal();
-    }
-  }, [closeModal]);
+  const handleDragEnd = useCallback(
+    (event, info) => {
+      const shouldClose = info.offset.y > 120 || info.velocity.y > 500;
+      if (shouldClose) closeModal();
+    },
+    [closeModal]
+  );
 
   return (
     <ModalContext.Provider value={value}>

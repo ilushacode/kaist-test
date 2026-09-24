@@ -1,27 +1,28 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import localforage from 'localforage';
+import { todayStamp } from '../utils/date';
 
 localforage.config({ name: 'schedule-app', storeName: 'state' });
 
 const indexedDBStorage = {
   getItem: async (name) => (await localforage.getItem(name)) ?? null,
-  setItem: async (name, value) => { await localforage.setItem(name, value); },
-  removeItem: async (name) => { await localforage.removeItem(name); },
+  setItem: async (name, value) => {
+    await localforage.setItem(name, value);
+  },
+  removeItem: async (name) => {
+    await localforage.removeItem(name);
+  },
 };
 
-// YYYY-MM-DD — чтобы удобно сравнивать "было сегодня или нет"
-const todayStamp = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+const STORAGE_KEY = 'schedule-app-storage';
 
 export const useStore = create(
   persist(
     (set, get) => ({
       // --- Группы ---
-      groups: [],                 // [ "ИУ7-42Б", "ИУ7-43Б", ... ]
-      selectedGroup: null,        // string | null
+      groups: [],           // [ "ИУ7-42Б", "ИУ7-43Б", ... ]
+      selectedGroup: null,  // string | null
 
       // --- Кэш расписания ---
       // { [groupNumber]: { "01.09": [lesson, ...], "02.09": [...] } }
@@ -61,8 +62,6 @@ export const useStore = create(
        * Устанавливает единственную группу.
        * Удаляет все предыдущие группы и кэш расписания,
        * добавляет новую группу и делает её выбранной.
-       *
-       * @param {string|number} number — номер группы
        */
       setSingleGroup: (number) => {
         const normalized = String(number).trim();
@@ -79,8 +78,6 @@ export const useStore = create(
 
       /**
        * Заменяет кэш для группы целиком.
-       * @param {string} groupNumber
-       * @param {Object} days — { "01.09": [lesson, ...], ... }
        */
       setGroupSchedule: (groupNumber, days) => {
         set({
@@ -93,7 +90,6 @@ export const useStore = create(
 
       /**
        * Сохраняет свежие данные для всех групп сразу и обновляет дату.
-       * @param {Object} data — { [groupNumber]: { "01.09": [...] } }
        */
       replaceCache: (data) => {
         set({
@@ -119,7 +115,6 @@ export const useStore = create(
        * Использовать только для тестирования.
        */
       resetAll: async () => {
-        // 1. Сбрасываем Zustand-state к начальному
         set({
           groups: [],
           selectedGroup: null,
@@ -127,21 +122,19 @@ export const useStore = create(
           lastFetchedAt: null,
         });
 
-        // 2. Чистим IndexedDB (persist пишет именно сюда)
         try {
-          await localforage.removeItem('schedule-app-storage');
+          await localforage.removeItem(STORAGE_KEY);
         } catch (e) {
           console.warn('localforage removeItem failed:', e);
         }
 
-        // 3. На всякий случай — localStorage (если что-то там осталось)
         try {
-          localStorage.removeItem('schedule-app-storage');
+          localStorage.removeItem(STORAGE_KEY);
         } catch {}
       },
     }),
     {
-      name: 'schedule-app-storage',
+      name: STORAGE_KEY,
       storage: createJSONStorage(() => indexedDBStorage),
       version: 2,
       partialize: (s) => ({

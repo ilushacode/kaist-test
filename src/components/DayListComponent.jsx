@@ -1,7 +1,10 @@
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef, useState, useMemo, useEffect } from "react";
+// src/components/DayListComponent.jsx
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useEffect, useMemo, useRef } from 'react';
+import { DAY_LIST_WEEKS } from '../config';
+import { compareDay, getMondayOfWeek } from '../utils/date';
 
-const DAY_NAMES = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
+const DAY_NAMES = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 
 // Отступы в пикселях (синхронизированы с rem из CSS)
 const GAP = 8;           // 0.5rem
@@ -11,17 +14,11 @@ export const DayListComponent = ({ today, selectedDate, setSelectedDate }) => {
   const parentRef = useRef(null);
 
   // Понедельник текущей недели
-  const startOfWeek = useMemo(() => {
-    const d = new Date(today);
-    const day = d.getDay(); // 0 = ВС, 1 = ПН, ...
-    const diff = day === 0 ? -6 : 1 - day;
-    d.setDate(d.getDate() + diff);
-    return d;
-  }, [today]);
+  const startOfWeek = useMemo(() => getMondayOfWeek(today), [today]);
 
   // 26 недель по 7 дней
   const weeks = useMemo(() => {
-    return Array.from({ length: 26 }, (_, w) => {
+    return Array.from({ length: DAY_LIST_WEEKS }, (_, w) => {
       return Array.from({ length: 7 }, (_, d) => {
         const date = new Date(startOfWeek);
         date.setDate(startOfWeek.getDate() + w * 7 + d);
@@ -42,13 +39,20 @@ export const DayListComponent = ({ today, selectedDate, setSelectedDate }) => {
   // Пересчёт размера при изменении окна
   useEffect(() => {
     const onResize = () => virtualizer.measure();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, [virtualizer]);
 
-  // Скролл к текущей неделе при монтировании
+  // Скролл к неделе, содержащей выбранную дату (или сегодня)
   useEffect(() => {
-    virtualizer.scrollToIndex(0, { align: "start" });
+    const target = startOfWeek;
+    const weekIndex = weeks.findIndex(
+      (week) => compareDay(week[0], target) === 0
+    );
+    if (weekIndex >= 0) {
+      virtualizer.scrollToIndex(weekIndex, { align: 'start' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -56,21 +60,21 @@ export const DayListComponent = ({ today, selectedDate, setSelectedDate }) => {
       className="day_list"
       ref={parentRef}
       style={{
-        height: "60px",
-        width: "100vw",
-        overflow: "auto",
-        boxSizing: "border-box",
-        scrollbarWidth: "none",
-        scrollSnapType: "x mandatory",
-        overscrollBehaviorX: "contain",
+        height: '60px',
+        width: '100vw',
+        overflow: 'auto',
+        boxSizing: 'border-box',
+        scrollbarWidth: 'none',
+        scrollSnapType: 'x mandatory',
+        overscrollBehaviorX: 'contain',
       }}
     >
       <div
         className="day_list__inner"
         style={{
           width: `${virtualizer.getTotalSize()}px`,
-          height: "100%",
-          position: "relative",
+          height: '100%',
+          position: 'relative',
         }}
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
@@ -80,34 +84,42 @@ export const DayListComponent = ({ today, selectedDate, setSelectedDate }) => {
             <div
               key={virtualItem.key}
               style={{
-                position: "absolute",
+                position: 'absolute',
                 top: 0,
                 left: 0,
                 width: `${virtualItem.size}px`,
-                height: "100%",
+                height: '100%',
                 transform: `translateX(${virtualItem.start}px)`,
-                boxSizing: "border-box",
+                boxSizing: 'border-box',
                 padding: `0 ${EDGE_PADDING}px`,
-                scrollSnapAlign: "start",
-                scrollSnapStop: "always",
+                scrollSnapAlign: 'start',
+                scrollSnapStop: 'always',
               }}
             >
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
                   gap: `${GAP}px`,
-                  height: "100%",
+                  height: '100%',
                 }}
               >
                 {week.map((date) => {
                   const isSelected =
                     selectedDate?.toDateString() === date.toDateString();
-                  const isPast = date < today;
+                  const isPast = compareDay(date, today) < 0;
 
                   const dayOfWeek = DAY_NAMES[date.getDay()];
-                  const day = String(date.getDate()).padStart(2, "0");
-                  const month = String(date.getMonth() + 1).padStart(2, "0");
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+
+                  const className = [
+                    'day_list__item',
+                    isSelected && 'day_list__item__active',
+                    isPast && 'day_list__item__disabled',
+                  ]
+                    .filter(Boolean)
+                    .join(' ');
 
                   return (
                     <div
@@ -116,13 +128,14 @@ export const DayListComponent = ({ today, selectedDate, setSelectedDate }) => {
                         if (isPast) return;
                         setSelectedDate(date);
                       }}
-                      className={`day_list__item ${
-                        isSelected ? "day_list__item__active" : ""
-                      } ${isPast ? "day_list__item__disabled" : ""}`}
+                      className={className}
                     >
                       <span className="day_list__item__day">{dayOfWeek}</span>
-                      <span className="day_list__item__date">{day}<span>{month}</span></span>
-                      <span className="day_list__item__dot"></span>
+                      <span className="day_list__item__date">
+                        {day}
+                        <span>{month}</span>
+                      </span>
+                      <span className="day_list__item__dot" />
                     </div>
                   );
                 })}

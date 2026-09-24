@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import axios from "axios";
-import { useStore } from "../hooks/useStore";
+import { useEffect, useRef, useState } from 'react';
+import { useStore } from '../hooks/useStore';
+import { fetchGroups } from '../api/groups';
+import { isCancelError } from '../api/client';
 
-const API_URL = "https://api-kaist.duodev.space/groups";
+const DEBOUNCE_MS = 250;
 
 export const SetGroupComponent = () => {
   const addGroup = useStore((s) => s.addGroup);
   const selectGroup = useStore((s) => s.selectGroup);
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [options, setOptions] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,22 +30,19 @@ export const SetGroupComponent = () => {
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(API_URL, {
-          params: { query: q },
-          signal: controller.signal,
-        });
+        const data = await fetchGroups(q, { signal: controller.signal });
         if (!cancelled) {
-          setOptions(data ?? []);
+          setOptions(data);
           setOpen(true);
         }
       } catch (err) {
-        if (!axios.isCancel?.(err) && err.name !== "CanceledError") {
-          console.error("groups autocomplete:", err);
+        if (!isCancelError(err)) {
+          console.error('groups autocomplete:', err);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, 250);
+    }, DEBOUNCE_MS);
 
     return () => {
       cancelled = true;
@@ -60,30 +58,24 @@ export const SetGroupComponent = () => {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  const handlePick = (item) => {
-    // number — строка вида "1301" (то, что вы используете как ключ)
-    addGroup(item.group, item.group);
-    selectGroup(item.group);
-    setQuery("");
+  const handlePick = (groupNumber) => {
+    addGroup(groupNumber);
+    selectGroup(groupNumber);
+    setQuery('');
     setOptions([]);
     setOpen(false);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Если пользователь ввёл номер вручную и не выбрал из списка —
-    // берём первую подходящую опцию или используем сырой ввод
     if (options.length > 0) {
-      handlePick(options[0]);
+      handlePick(options[0].group);
     } else if (query.trim()) {
-      addGroup(query.trim(), query.trim());
-      selectGroup(query.trim());
-      setQuery("");
-      setOpen(false);
+      handlePick(query.trim());
     }
   };
 
@@ -91,9 +83,7 @@ export const SetGroupComponent = () => {
     <div className="set_group theme_light">
       <div className="set_group__inner" ref={boxRef}>
         <h1 className="set_group__title">Выберите группу</h1>
-        <p className="set_group__subtitle">
-          Начните вводить номер
-        </p>
+        <p className="set_group__subtitle">Начните вводить номер</p>
 
         <form className="set_group__form" onSubmit={handleSubmit}>
           <input
@@ -113,7 +103,7 @@ export const SetGroupComponent = () => {
                 <li
                   key={item._id}
                   className="set_group__option"
-                  onClick={() => handlePick(item)}
+                  onClick={() => handlePick(item.group)}
                 >
                   {item.group}
                 </li>

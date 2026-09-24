@@ -1,26 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { AnimatePresence, motion } from "motion/react";
-import { ScheduleLesson } from "./ScheduleLessonComponent";
-import { useStore } from "../hooks/useStore";
-import { Image } from "@capri-js/image";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ScheduleLesson } from './ScheduleLessonComponent';
+import { useStore } from '../hooks/useStore';
+import { usePrefetchImage } from '../hooks/usePrefetchImage';
+import { fetchDaySchedule } from '../api/schedule';
+import { isCancelError } from '../api/client';
+import { formatDM } from '../utils/date';
 
-// Date -> "DD.MM"
-function formatDate(date) {
-  const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  return `${day}.${month}`;
-}
+const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
 
 const variants = {
-  enter: (dir) => ({ x: dir > 0 ? "100%" : "-100%" }),
+  enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%' }),
   center: { x: 0 },
-  exit: (dir) => ({ x: dir > 0 ? "-100%" : "100%" }),
+  exit: (dir) => ({ x: dir > 0 ? '-100%' : '100%' }),
 };
 
 const transition = {
-  type: "tween",
+  type: 'tween',
   ease: [0.25, 0.1, 0.25, 1],
   duration: 0.28,
 };
@@ -28,20 +24,20 @@ const transition = {
 export const ScheduleComponent = ({ selectedDate }) => {
   const selectedGroup = useStore((s) => s.selectedGroup);
   const setGroupSchedule = useStore((s) => s.setGroupSchedule);
-  const cachedDays = useStore((s) => s.scheduleCache[selectedGroup]);
 
-  const dateKey = formatDate(selectedDate);
-
-  // Направление анимации: 1 — вперёд (влево), -1 — назад (вправо)
   const [direction, setDirection] = useState(0);
   const [renderedDate, setRenderedDate] = useState(selectedDate);
-
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Следим за сменой даты: запоминаем направление и запоминаем "текущую" дату
+  const prevDateRef = useRef(selectedDate);
+
+  // Предзагружаем картинку пустого расписания один раз
+  usePrefetchImage(EMPTY_IMAGE_SRC);
+
+  // Следим за сменой даты: запоминаем направление и "текущую" дату
   useEffect(() => {
-    const prev = new Date(renderedDate);
+    const prev = new Date(prevDateRef.current);
     prev.setHours(0, 0, 0, 0);
     const next = new Date(selectedDate);
     next.setHours(0, 0, 0, 0);
@@ -49,15 +45,17 @@ export const ScheduleComponent = ({ selectedDate }) => {
     if (next.getTime() !== prev.getTime()) {
       setDirection(next > prev ? 1 : -1);
       setRenderedDate(selectedDate);
+      prevDateRef.current = selectedDate;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
-  // Загрузка занятий для текущей (отрисованной) даты
+  // Загрузка занятий для отрисованной даты
   useEffect(() => {
     if (!selectedGroup) return;
 
-    const key = formatDate(renderedDate);
+    const key = formatDM(renderedDate);
+    // Берём актуальный кэш из store без подписки на изменения
+    const cachedDays = useStore.getState().scheduleCache[selectedGroup];
     const cached = cachedDays?.[key];
 
     if (cached) {
@@ -69,22 +67,22 @@ export const ScheduleComponent = ({ selectedDate }) => {
     let cancelled = false;
     setLoading(true);
 
-    axios
-      .get("https://api-kaist.duodev.space/schedule/day", {
-        params: { group: selectedGroup, date: key },
-      })
-      .then((response) => {
+    fetchDaySchedule(selectedGroup, key, {
+      signal: AbortSignal.timeout?.(8000),
+    })
+      .then((items) => {
         if (cancelled) return;
-        const items = response.data.items ?? [];
         setLessons(items);
 
+        const currentCache =
+          useStore.getState().scheduleCache[selectedGroup] ?? {};
         setGroupSchedule(selectedGroup, {
-          ...(cachedDays ?? {}),
+          ...currentCache,
           [key]: items,
         });
       })
       .catch((error) => {
-        if (cancelled) return;
+        if (cancelled || isCancelError(error)) return;
         console.error(error);
         setLessons([]);
       })
@@ -95,9 +93,9 @@ export const ScheduleComponent = ({ selectedDate }) => {
     return () => {
       cancelled = true;
     };
-  }, [selectedGroup, renderedDate, cachedDays, setGroupSchedule]);
+  }, [selectedGroup, renderedDate, setGroupSchedule]);
 
-  const animationKey = formatDate(renderedDate);
+  const animationKey = formatDM(renderedDate);
 
   const content = useMemo(() => {
     if (loading) {
@@ -112,11 +110,12 @@ export const ScheduleComponent = ({ selectedDate }) => {
       return (
         <div className="schedule schedule--centered">
           <div>
-            <Image
-              src="/images/goose_sleep.png"
+            <img
+              src={EMPTY_IMAGE_SRC}
               alt="Гусь спит"
-              sizes="90vw"
-              loading="lazy"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
               className="schedule__empty-image"
             />
             <p className="schedule__empty-title">Сегодня нет пар</p>
@@ -131,7 +130,7 @@ export const ScheduleComponent = ({ selectedDate }) => {
     return (
       <div className="schedule">
         {lessons.map((lesson, i) => (
-          <div key={i}>
+          <div key={`${lesson.subject}-${lesson.time}-${i}`}>
             <ScheduleLesson date={renderedDate} lesson={lesson} />
           </div>
         ))}

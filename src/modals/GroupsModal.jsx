@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useStore } from '../hooks/useStore';
-import Loader from '../components/LoaderComponent';
 import { useModal } from '../providers/ModalProvider';
+import Loader from '../components/LoaderComponent';
+import { fetchGroups } from '../api/groups';
+import { isCancelError } from '../api/client';
 
-const API_URL = 'https://api-kaist.duodev.space/groups';
+const DEBOUNCE_MS = 250;
 
 export default function GroupsModal() {
-  const { closeModal } = useModal()
+  const { closeModal } = useModal();
 
   const selectedGroup = useStore((s) => s.selectedGroup);
   const setSingleGroup = useStore((s) => s.setSingleGroup);
@@ -32,22 +33,17 @@ export default function GroupsModal() {
 
     const timer = setTimeout(async () => {
       try {
-        const { data } = await axios.get(API_URL, {
-          params: { query: q },
-          signal: controller.signal,
-        });
-        if (!cancelled) {
-          setOptions(data ?? []);
-        }
+        const data = await fetchGroups(q, { signal: controller.signal });
+        if (!cancelled) setOptions(data);
       } catch (err) {
-        if (!axios.isCancel?.(err) && err.name !== 'CanceledError') {
+        if (!isCancelError(err)) {
           console.error('groups autocomplete:', err);
           if (!cancelled) setOptions([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, 250);
+    }, DEBOUNCE_MS);
 
     return () => {
       cancelled = true;
@@ -60,7 +56,7 @@ export default function GroupsModal() {
     setSingleGroup(group);
     setQuery('');
     setOptions([]);
-    closeModal()
+    closeModal();
   };
 
   const handleSubmit = (e) => {
