@@ -24,17 +24,32 @@ const formatRange = (startDate, days = RANGE_DAYS) => {
   return `${formatDM(start)}-${formatDM(end)}`;
 };
 
+// Стабильный ключ от списка групп — чтобы useEffect не срабатывал
+// на каждый новый массив с теми же значениями
+const groupsKey = (groups) => groups.join("|");
+
 export default function useBootstrap(today) {
   const groups = useStore((s) => s.groups);
   const [ready, setReady] = useState(false);
+
+  const key = groupsKey(groups);
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
 
+    // Сбрасываем ready при каждом новом наборе групп.
+    // Пока новый range не приедет — App покажет LoaderScreen,
+    // а ScheduleComponent не будет дёргать /schedule/day.
+    setReady(false);
+
     (async () => {
-      const { groups, needsUpdate, replaceCache, setGroupSchedule } =
-        useStore.getState();
+      const {
+        groups,
+        needsUpdate,
+        replaceCache,
+        setGroupSchedule,
+      } = useStore.getState();
 
       if (groups.length === 0) {
         if (!cancelled) setReady(true);
@@ -45,7 +60,7 @@ export default function useBootstrap(today) {
 
       try {
         const results = await Promise.all(
-          groups.map(async ({ number }) => {
+          groups.map(async (number) => {
             const cached = useStore.getState().scheduleCache[number];
             if (cached && !needsUpdate()) {
               return [number, cached];
@@ -81,7 +96,7 @@ export default function useBootstrap(today) {
       cancelled = true;
       controller.abort();
     };
-  }, [groups, today]);
+  }, [key, today]);
 
   return ready;
 }

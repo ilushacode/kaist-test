@@ -20,8 +20,8 @@ export const useStore = create(
   persist(
     (set, get) => ({
       // --- Группы ---
-      groups: [],                 // [{ number, title }]
-      selectedGroup: null,        // string
+      groups: [],                 // [ "ИУ7-42Б", "ИУ7-43Б", ... ]
+      selectedGroup: null,        // string | null
 
       // --- Кэш расписания ---
       // { [groupNumber]: { "01.09": [lesson, ...], "02.09": [...] } }
@@ -31,31 +31,49 @@ export const useStore = create(
       lastFetchedAt: null,
 
       // --- Действия с группами ---
-      addGroup: (number, title) => {
+      addGroup: (number) => {
         const normalized = String(number).trim();
         if (!normalized) return;
         const { groups, selectedGroup } = get();
-        if (groups.some((g) => g.number === normalized)) return;
+        if (groups.includes(normalized)) return;
         set({
-          groups: [...groups, { number: normalized, title: title || normalized }],
+          groups: [...groups, normalized],
           selectedGroup: selectedGroup ?? normalized,
         });
       },
 
       removeGroup: (number) => {
         const { groups, selectedGroup, scheduleCache } = get();
-        const newGroups = groups.filter((g) => g.number !== number);
+        const newGroups = groups.filter((g) => g !== number);
         const newCache = { ...scheduleCache };
         delete newCache[number];
         set({
           groups: newGroups,
           scheduleCache: newCache,
           selectedGroup:
-            selectedGroup === number ? newGroups[0]?.number ?? null : selectedGroup,
+            selectedGroup === number ? newGroups[0] ?? null : selectedGroup,
         });
       },
 
       selectGroup: (number) => set({ selectedGroup: number }),
+
+      /**
+       * Устанавливает единственную группу.
+       * Удаляет все предыдущие группы и кэш расписания,
+       * добавляет новую группу и делает её выбранной.
+       *
+       * @param {string|number} number — номер группы
+       */
+      setSingleGroup: (number) => {
+        const normalized = String(number).trim();
+        if (!normalized) return;
+        set({
+          groups: [normalized],
+          selectedGroup: normalized,
+          scheduleCache: {},
+          lastFetchedAt: null,
+        });
+      },
 
       // --- Кэш расписания ---
 
@@ -125,13 +143,22 @@ export const useStore = create(
     {
       name: 'schedule-app-storage',
       storage: createJSONStorage(() => indexedDBStorage),
-      version: 1,
+      version: 2,
       partialize: (s) => ({
         groups: s.groups,
         selectedGroup: s.selectedGroup,
         scheduleCache: s.scheduleCache,
         lastFetchedAt: s.lastFetchedAt,
       }),
+      migrate: (persisted, version) => {
+        // v1 хранил группы как [{ number, title }] — приводим к строкам
+        if (version < 2 && persisted?.groups) {
+          persisted.groups = persisted.groups.map((g) =>
+            typeof g === 'string' ? g : g.number
+          );
+        }
+        return persisted;
+      },
     }
   )
 );
