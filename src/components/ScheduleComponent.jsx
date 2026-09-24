@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { AnimatePresence, motion } from "motion/react";
 import { ScheduleLesson } from "./ScheduleLessonComponent";
 import { useStore } from "../hooks/useStore";
 
@@ -11,6 +12,18 @@ function formatDate(date) {
   return `${day}.${month}`;
 }
 
+const variants = {
+  enter: (dir) => ({ x: dir > 0 ? "100%" : "-100%" }),
+  center: { x: 0 },
+  exit: (dir) => ({ x: dir > 0 ? "-100%" : "100%" }),
+};
+
+const transition = {
+  type: "tween",
+  ease: [0.25, 0.1, 0.25, 1],
+  duration: 0.28,
+};
+
 export const ScheduleComponent = ({ selectedDate }) => {
   const selectedGroup = useStore((s) => s.selectedGroup);
   const setGroupSchedule = useStore((s) => s.setGroupSchedule);
@@ -18,39 +31,55 @@ export const ScheduleComponent = ({ selectedDate }) => {
 
   const dateKey = formatDate(selectedDate);
 
-  // Что показываем: кэш, если он есть, иначе локальный стейт после запроса
+  // Направление анимации: 1 — вперёд (влево), -1 — назад (вправо)
+  const [direction, setDirection] = useState(0);
+  const [renderedDate, setRenderedDate] = useState(selectedDate);
+
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Следим за сменой даты: запоминаем направление и запоминаем "текущую" дату
+  useEffect(() => {
+    const prev = new Date(renderedDate);
+    prev.setHours(0, 0, 0, 0);
+    const next = new Date(selectedDate);
+    next.setHours(0, 0, 0, 0);
+
+    if (next.getTime() !== prev.getTime()) {
+      setDirection(next > prev ? 1 : -1);
+      setRenderedDate(selectedDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  // Загрузка занятий для текущей (отрисованной) даты
   useEffect(() => {
     if (!selectedGroup) return;
 
-    // 1. Если в кэше уже есть этот день — берём оттуда, сеть не трогаем
-    const cached = cachedDays?.[dateKey];
+    const key = formatDate(renderedDate);
+    const cached = cachedDays?.[key];
+
     if (cached) {
       setLessons(cached);
       setLoading(false);
       return;
     }
 
-    // 2. Иначе грузим с сервера
     let cancelled = false;
     setLoading(true);
 
     axios
       .get("https://api-kaist.duodev.space/schedule/day", {
-        params: { group: selectedGroup, date: dateKey },
+        params: { group: selectedGroup, date: key },
       })
       .then((response) => {
         if (cancelled) return;
         const items = response.data.items ?? [];
         setLessons(items);
 
-        // Кладём в кэш: сохраняем весь известный days + добавляем новый день.
-        // setGroupSchedule заменяет объект целиком, поэтому объединяем вручную.
         setGroupSchedule(selectedGroup, {
           ...(cachedDays ?? {}),
-          [dateKey]: items,
+          [key]: items,
         });
       })
       .catch((error) => {
@@ -65,51 +94,59 @@ export const ScheduleComponent = ({ selectedDate }) => {
     return () => {
       cancelled = true;
     };
-  }, [selectedGroup, dateKey, cachedDays, setGroupSchedule]);
+  }, [selectedGroup, renderedDate, cachedDays, setGroupSchedule]);
 
-  if (loading) {
-    return (
-      <div
-        className="schedule"
-        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-      >
-        <p>Загрузка...</p>
-      </div>
-    );
-  }
+  const animationKey = formatDate(renderedDate);
 
-  if (lessons.length === 0) {
-    return (
-      <div
-        className="schedule"
-        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-      >
-        <div>
-          <p style={{ fontSize: "1.7rem", fontWeight: "500", textAlign: "center" }}>
-            Нет пар
-          </p>
-          <p
-            style={{
-              fontSize: "1.1rem",
-              textAlign: "center",
-              color: "var(--light-font-color)",
-              marginTop: ".5rem",
-            }}
-          >
-            Отличный повод отдохнуть!
-          </p>
+  const content = useMemo(() => {
+    if (loading) {
+      return (
+        <div className="schedule schedule--centered">
+          <p>Загрузка...</p>
         </div>
+      );
+    }
+
+    if (lessons.length === 0) {
+      return (
+        <div className="schedule schedule--centered">
+          <div>
+            <p className="schedule__empty-title">Нет пар</p>
+            <p className="schedule__empty-subtitle">
+              Отличный повод отдохнуть!
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="schedule">
+        {lessons.map((lesson, i) => (
+          <div key={i}>
+            <ScheduleLesson date={renderedDate} lesson={lesson} />
+          </div>
+        ))}
       </div>
     );
-  }
+  }, [loading, lessons, renderedDate]);
 
   return (
-    <div className="schedule">
-      {lessons.map((lesson, i) => (
-        <div key={i}>
-          <ScheduleLesson date={selectedDate} lesson={lesson} />
-        </div>
-      ))}
+    <div className="schedule-viewport">
+      <AnimatePresence initial={false} custom={direction} mode="popLayout">
+        <motion.div
+          key={animationKey}
+          custom={direction}
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={transition}
+          className="schedule-page"
+        >
+          {content}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 };
