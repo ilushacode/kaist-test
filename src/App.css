@@ -1,0 +1,227 @@
+
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--background-color);
+  color: var(--font-color);
+}
+
+
+/* HEADER */
+
+.header {
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header__left__title {
+  font-weight: 600;
+  font-size: 1.3rem;
+  letter-spacing: 5%;
+}
+.header__left__group {
+  color: var(--light-font-color);
+  font-size: .9rem;
+  margin-top: .2rem;
+}
+.header__right {
+  color: var(--light-font-color);
+}
+
+
+/* DAY LIST */
+
+.day_list {
+  margin-bottom: .5rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.day_list::-webkit-scrollbar {
+  display: none;
+}
+
+.day_list__inner {
+  position: relative;
+  height: 100%;
+}
+
+.day_list__item {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  padding: .5rem .25rem;
+  transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: black;
+}
+
+.day_list__item__day {
+  font-size: .7rem;
+  color: var(--light-font-color);
+  line-height: 1;
+  white-space: nowrap;
+}
+.day_list__item__date {
+  margin-top: .1rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.day_list__item__dot {
+  height: 4px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.day_list__item__active > .day_list__item__day {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+.day_list__item__active > .day_list__item__date {
+  color: var(--primary-color);
+}
+.day_list__item__active > .day_list__item__dot {
+  opacity: 1;
+}
+.day_list__item__disabled {
+  opacity: .6;
+}
+.day_list__item__disabled > .day_list__item__date {
+  color: var(--light-font-color);
+}
+
+
+/* SCHEDULE */
+
+.schedule {
+  flex: 1;
+  padding: 1rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.schedule_lesson {
+  width: 100%;
+  display: flex;
+  gap: .5rem;
+}
+
+.schedule_lesson__times {
+  flex: 0 0 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.schedule_lesson__times__start {
+  font-weight: 500;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.schedule_lesson__times__end {
+  color: var(--light-font-color);
+  white-space: nowrap;
+}
+
+.schedule_lesson__line {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+}
+
+.schedule_lesson__line__dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1rem;
+  aspect-ratio: 1;
+  border: 2px solid var(--primary-color);
+  border-radius: 50%;
+  margin-top: .2rem;
+  flex-shrink: 0;
+}
+
+.schedule_lesson__line__dot__inner {
+  height: .3rem;
+  aspect-ratio: 1;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+}
+
+.schedule_lesson__line__line {
+  flex: 1;
+  width: 2px;
+  margin: .2rem 0;
+  background-color: var(--primary-color);
+}
+
+.schedule_lesson__content {
+  flex: 1;
+  min-width: 0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background-color: var(--accent-background-color);
+}
+
+.schedule_lesson__content__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.schedule_lesson__content__type {
+  margin-top: .5rem;
+  margin-bottom: 1rem;
+}
+.schedule_lesson__content__type > span {
+  color: var(--light-font-color);
+}
+.schedule_lesson__active >
+.schedule_lesson__content__type >
+span {
+  color: var(--background-color);
+  opacity: .5;
+}
+
+.schedule_lesson__content__meta {
+  display: flex;
+  gap: .5rem;
+  margin-top: .5rem;
+}
+
+.schedule_lesson__content__meta__icon {
+  color: var(--light-font-color);
+}
+
+.schedule_lesson__active {
+  background-color: var(--primary-color) !important;
+  color: var(--background-color);
+}
+
+.schedule_lesson__active >
+.schedule_lesson__content__meta >
+.schedule_lesson__content__meta__icon {
+  color: var(--background-color);
+  opacity: .5;
+}

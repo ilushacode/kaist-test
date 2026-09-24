@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+
+:root {
+
+}
+
+.theme_light {
+  --primary-color: #306fce;
+
+  --background-color: #fff;
+  --accent-background-color: #e4eefe;
+
+  --font-color: #000;
+  --light-font-color: #7993bc;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  font-family: "Ubuntu", sans-serif;
+  overflow: hidden;
+}
