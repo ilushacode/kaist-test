@@ -174,7 +174,7 @@
 }
 .header__left__title {
   font-weight: 600;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   letter-spacing: 5%;
 }
 .header__left__group {
@@ -355,11 +355,19 @@
   white-space: nowrap;
 }
 .day_list__item__date {
+  display: flex;
+  align-items: flex-start;
   margin-top: .1rem;
   font-size: 1.1rem;
   line-height: 1;
   white-space: nowrap;
   font-weight: 500;
+}
+.day_list__item__date > span {
+  font-size: .8rem;
+  font-weight: 400;
+  opacity: .6;
+  margin-left: .1rem;
 }
 .day_list__item__dot {
   height: 4px;
@@ -406,6 +414,7 @@
 
 .schedule_lesson__times {
   width: 13vw;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -475,7 +484,7 @@
 
 .schedule_lesson__content__type {
   margin-top: .5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 .schedule_lesson__content__type > span {
   color: var(--light-font-color);
@@ -546,10 +555,15 @@ span {
   text-align: center;
   margin: 0;
 }
-
 .schedule__empty-subtitle {
   font-size: 1.1rem;
   text-align: center;
   color: var(--light-font-color);
   margin-top: 0.5rem;
+  margin-bottom: 30%;
+}
+.schedule__empty-image {
+  width: 80%;
+  aspect-ratio: 1;
+  margin-bottom: 1rem;
 }

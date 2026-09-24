@@ -3,6 +3,7 @@ import axios from "axios";
 import { AnimatePresence, motion } from "motion/react";
 import { ScheduleLesson } from "./ScheduleLessonComponent";
 import { useStore } from "../hooks/useStore";
+import { Image } from "@capri-js/image";
 
 // Date -> "DD.MM"
 function formatDate(date) {
@@ -111,7 +112,14 @@ export const ScheduleComponent = ({ selectedDate }) => {
       return (
         <div className="schedule schedule--centered">
           <div>
-            <p className="schedule__empty-title">Нет пар</p>
+            <Image
+              src="/images/goose_sleep.png"
+              alt="Гусь спит"
+              sizes="90vw"
+              loading="lazy"
+              className="schedule__empty-image"
+            />
+            <p className="schedule__empty-title">Сегодня нет пар</p>
             <p className="schedule__empty-subtitle">
               Отличный повод отдохнуть!
             </p>

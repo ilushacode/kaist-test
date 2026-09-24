@@ -3,6 +3,7 @@ import {
   UserGroup,
   GraduationCap,
   Send,
+  BookOpenText,
 } from 'lucide-react';
 import { ChevronRight } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
@@ -28,8 +29,15 @@ export default function MenuModal({ closeModal }) {
     [
       {
         icon: UserGroup,
-        color: '#db5f0c',
+        color: '#db960c',
         title: 'Одногруппники',
+        right: <span style={{backgroundColor: '#dde1ef', padding: '.2rem .5rem', borderRadius: '.5rem'}}>Скоро</span>,
+        // callback: () => console.log('appearance'),
+      },
+      {
+        icon: BookOpenText,
+        color: '#0cdb39',
+        title: 'Экзамены',
         right: <span style={{backgroundColor: '#dde1ef', padding: '.2rem .5rem', borderRadius: '.5rem'}}>Скоро</span>,
         // callback: () => console.log('appearance'),
       },

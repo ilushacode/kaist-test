@@ -107,6 +107,7 @@ export const DayListComponent = ({ today, selectedDate, setSelectedDate }) => {
 
                   const dayOfWeek = DAY_NAMES[date.getDay()];
                   const day = String(date.getDate()).padStart(2, "0");
+                  const month = String(date.getMonth() + 1).padStart(2, "0");
 
                   return (
                     <div
@@ -120,7 +121,7 @@ export const DayListComponent = ({ today, selectedDate, setSelectedDate }) => {
                       } ${isPast ? "day_list__item__disabled" : ""}`}
                     >
                       <span className="day_list__item__day">{dayOfWeek}</span>
-                      <span className="day_list__item__date">{day}</span>
+                      <span className="day_list__item__date">{day}<span>{month}</span></span>
                       <span className="day_list__item__dot"></span>
                     </div>
                   );

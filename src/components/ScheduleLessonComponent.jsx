@@ -74,6 +74,14 @@ function formatBuilding(raw) {
   return trimmed;
 }
 
+const capitalizeName = (str) => {
+  return str
+    .toLowerCase()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 export const ScheduleLesson = ({ lesson, date }) => {
   const [, forceTick] = useState(0);
 
@@ -119,7 +127,7 @@ export const ScheduleLesson = ({ lesson, date }) => {
               <GraduationCap size={22} />
             </span>
             <p className="schedule_lesson__content__meta__data">
-              {lesson.teacher}
+              {capitalizeName(lesson.teacher)}
             </p>
           </div>
           <div
