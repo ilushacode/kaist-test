@@ -8,12 +8,16 @@ import {
 } from '../utils/date';
 import { capitalizeName, formatBuilding } from '../utils/string';
 import { getLessonTypeLabel } from '../utils/lesson';
+import { useModal } from '../providers/ModalProvider';
+import LessonModal from '../modals/LessonModal';
 
 const TICK_INTERVAL_MS = 60_000;
 
 export const ScheduleLesson = ({ lesson, date }) => {
   // Форсируем ре-рендер раз в минуту, чтобы обновить статус "сейчас/прошло"
   const [, tick] = useReducer((n) => n + 1, 0);
+
+  const { openModal } = useModal()
 
   useEffect(() => {
     const id = setInterval(tick, TICK_INTERVAL_MS);
@@ -34,8 +38,12 @@ export const ScheduleLesson = ({ lesson, date }) => {
     .filter(Boolean)
     .join(' ');
 
+  const handleLessonClick = () => {
+    openModal(LessonModal, { lesson, date })
+  }
+
   return (
-    <div className="schedule_lesson">
+    <div className="schedule_lesson" onClick={handleLessonClick}>
       <div className="schedule_lesson__times">
         <p className="schedule_lesson__times__start">{stripLeadingZero(start)}</p>
         <p className="schedule_lesson__times__end">{end}</p>

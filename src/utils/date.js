@@ -1,3 +1,8 @@
+const MONTHS_GENITIVE = [
+  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+];
+
 /** Сбрасывает время до 00:00:00.000 */
 export const startOfDay = (date) => {
   const d = new Date(date);
@@ -35,6 +40,12 @@ export const formatISO = (date) => {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+};
+
+/** Date -> "DD.MM" */
+export const formatDayMonth = (date) => {
+  const d = new Date(date);
+  return `${d.getDate()} ${MONTHS_GENITIVE[d.getMonth()]}`;
 };
 
 /** Строит диапазон "DD.MM-DD.MM" включая start, длиной days */
@@ -99,6 +110,22 @@ export const isLessonPast = (lessonDate, end) => {
 
   const current = now.getHours() * 60 + now.getMinutes();
   return current > parseTimeToMinutes(end);
+};
+
+/** true, если день из строки "DD.MM" уже прошёл (по календарному дню) */
+export const isPastDay = (value) => {
+  const now = new Date();
+  const [day, month] = value.split('.').map(Number);
+  const date = startOfDay(new Date(now.getFullYear(), month - 1, day));
+  return compareDay(date, now) < 0;
+};
+
+/** true, если день из строки "DD.MM" — сегодня */
+export const isTodayDay = (value) => {
+  const now = new Date();
+  const [day, month] = value.split('.').map(Number);
+  const date = startOfDay(new Date(now.getFullYear(), month - 1, day));
+  return compareDay(date, now) === 0;
 };
 
 /** Сегодняшняя дата как "YYYY-MM-DD" */
