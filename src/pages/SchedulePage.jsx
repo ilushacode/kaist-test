@@ -11,7 +11,7 @@ export function SchedulePage({ today, selectedDate, setSelectedDate }) {
         selectedDate={selectedDate}
         setSelectedDate={setSelectedDate}
       />
-      <ScheduleComponent selectedDate={selectedDate} />
+      <ScheduleComponent selectedDate={selectedDate} onDateChange={setSelectedDate} />
     </>
   );
 }

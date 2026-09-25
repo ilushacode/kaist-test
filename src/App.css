@@ -521,6 +521,7 @@
   overflow: hidden;
   flex: 1;
   min-height: 0;
+  touch-action: pan-y;
 }
 
 .schedule-page {

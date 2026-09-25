@@ -10,6 +10,10 @@ import Loader from './LoaderComponent';
 
 const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
 
+// Порог срабатывания свайпа (px) и минимальная скорость (px/ms)
+const SWIPE_DISTANCE = 80;
+const SWIPE_VELOCITY = 0.5;
+
 const variants = {
   enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%' }),
   center: { x: 0 },
@@ -22,7 +26,14 @@ const transition = {
   duration: 0.28,
 };
 
-export const ScheduleComponent = ({ selectedDate }) => {
+function shiftDate(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
   const selectedGroup = useStore((s) => s.selectedGroup);
   const setGroupSchedule = useStore((s) => s.setGroupSchedule);
 
@@ -106,10 +117,7 @@ export const ScheduleComponent = ({ selectedDate }) => {
     if (loading) {
       return (
         <div className="schedule schedule--centered">
-          <Loader
-            color={'#a8bcdd'}
-            stroke={3}
-          />
+          <Loader color={'#a8bcdd'} stroke={3} />
         </div>
       );
     }
@@ -169,6 +177,23 @@ export const ScheduleComponent = ({ selectedDate }) => {
     );
   }, [loading, error, lessons, renderedDate]);
 
+  // Обработка окончания свайпа
+  const handleDragEnd = (_, info) => {
+    if (!onDateChange) return;
+
+    const { offset, velocity } = info;
+    const passed =
+      Math.abs(offset.x) > SWIPE_DISTANCE ||
+      Math.abs(velocity.x) > SWIPE_VELOCITY;
+
+    if (!passed) return;
+
+    // Свайп влево (offset.x < 0) → следующий день
+    // Свайп вправо (offset.x > 0) → предыдущий день
+    const delta = offset.x < 0 ? 1 : -1;
+    onDateChange(shiftDate(renderedDate, delta));
+  };
+
   return (
     <div className="schedule-viewport">
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
@@ -181,6 +206,10 @@ export const ScheduleComponent = ({ selectedDate }) => {
           exit="exit"
           transition={transition}
           className="schedule-page"
+          drag={onDateChange ? 'x' : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.15}
+          onDragEnd={handleDragEnd}
         >
           {content}
         </motion.div>
