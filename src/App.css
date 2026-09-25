@@ -483,8 +483,7 @@
   color: var(--light-font-color);
 }
 .schedule_lesson__active >
-.schedule_lesson__content__type >
-span {
+.schedule_lesson__content__type {
   color: var(--background-color);
   opacity: .5;
 }
