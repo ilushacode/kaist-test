@@ -233,13 +233,16 @@ export const InstallScreen = ({
                   <>
                     {/* Кнопка — только если браузер родной и событие пришло */}
                     {showInstallButton && (
-                      <button
-                        type="button"
-                        className="install__button"
-                        onClick={handleInstall}
-                      >
-                        Установить приложение
-                      </button>
+                      <div className="install__button__container">
+                        <button
+                          type="button"
+                          className="install__button"
+                          onClick={handleInstall}
+                        >
+                          Установить приложение
+                        </button>
+                        <p className="install__button__or">или</p>
+                      </div>
                     )}
 
                     {/* Шаги — всегда (пока не установлено) */}
