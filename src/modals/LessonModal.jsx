@@ -10,21 +10,13 @@ import { getLessonTypeLabel } from '../utils/lesson';
 import { GraduationCap } from 'lucide-react';
 
 
-export default function LessonModal({ lesson, date }) {
+export default function LessonModal({ lesson }) {
   const { closeModal } = useModal();
-  // const { lesson } = data;
-
-  useEffect(() => {
-    console.log(lesson)
-  }, [])
 
   return (
     <div className="lesson_modal">
       <p className='lesson_modal__title'>{ lesson.subject }</p>
       <p className="lesson__modal__type">{ getLessonTypeLabel(lesson.type) }</p>
-      <div className="lesson_modal__subtitle">
-        {/* <p className="lesson_modal__subtitle__times">{ stripLeadingZero(lesson.time) } — { addMinutes(lesson.time, 90) }</p> */}
-      </div>
 
       <div className="lesson_modal__today">
         <p className="lesson_modal__today__times">{ stripLeadingZero(lesson.time) } — { addMinutes(lesson.time, 90) }</p>
