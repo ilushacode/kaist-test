@@ -80,15 +80,29 @@ export default function GroupsModal() {
         <p className="groups_modal__form__hint">Введите новый номер группы</p>
 
         <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            inputMode="numeric"
-            className="groups_modal__form__input"
-            placeholder={selectedGroup ?? 'Номер группы'}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            autoFocus
-          />
+          <div className="groups_modal__form__input-wrap">
+            <input
+              type="text"
+              inputMode="numeric"
+              className="groups_modal__form__input"
+              placeholder={selectedGroup ?? 'Номер группы'}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoFocus
+            />
+            {loading && (
+              <Loader
+                size={16}
+                color="var(--light-font-color)"
+                style={{
+                  position: 'absolute',
+                  right: '0.7rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                }}
+              />
+            )}
+          </div>
         </form>
       </div>
 
@@ -102,12 +116,6 @@ export default function GroupsModal() {
           <p className="groups_modal__results__placeholder">
             Начните вводить номер
           </p>
-        )}
-
-        {showResults && loading && (
-          <div className="groups_modal__results__placeholder">
-            <Loader />
-          </div>
         )}
 
         {showResults && !loading && options.length === 0 && (

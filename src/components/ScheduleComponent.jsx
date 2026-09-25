@@ -6,6 +6,7 @@ import { usePrefetchImage } from '../hooks/usePrefetchImage';
 import { fetchDaySchedule } from '../api/schedule';
 import { isCancelError } from '../api/client';
 import { formatDM } from '../utils/date';
+import Loader from './LoaderComponent';
 
 const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
 
@@ -29,6 +30,7 @@ export const ScheduleComponent = ({ selectedDate }) => {
   const [renderedDate, setRenderedDate] = useState(selectedDate);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const prevDateRef = useRef(selectedDate);
 
@@ -60,12 +62,14 @@ export const ScheduleComponent = ({ selectedDate }) => {
 
     if (cached) {
       setLessons(cached);
+      setError(false);
       setLoading(false);
       return;
     }
 
     let cancelled = false;
     setLoading(true);
+    setError(false);
 
     fetchDaySchedule(selectedGroup, key, {
       signal: AbortSignal.timeout?.(8000),
@@ -81,10 +85,11 @@ export const ScheduleComponent = ({ selectedDate }) => {
           [key]: items,
         });
       })
-      .catch((error) => {
-        if (cancelled || isCancelError(error)) return;
-        console.error(error);
+      .catch((err) => {
+        if (cancelled || isCancelError(err)) return;
+        console.error(err);
         setLessons([]);
+        setError(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -101,7 +106,33 @@ export const ScheduleComponent = ({ selectedDate }) => {
     if (loading) {
       return (
         <div className="schedule schedule--centered">
-          <p>Загрузка...</p>
+          <Loader
+            color={'#a8bcdd'}
+            stroke={3}
+          />
+        </div>
+      );
+    }
+
+    if (error && lessons.length === 0) {
+      return (
+        <div className="schedule schedule--centered">
+          <div>
+            <img
+              src={EMPTY_IMAGE_SRC}
+              alt="Гусь спит"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              className="schedule__empty-image"
+            />
+            <p className="schedule__empty-title">
+              Не удалось загрузить расписание
+            </p>
+            <p className="schedule__empty-subtitle">
+              Проверьте соединение и попробуйте позже
+            </p>
+          </div>
         </div>
       );
     }
@@ -120,7 +151,7 @@ export const ScheduleComponent = ({ selectedDate }) => {
             />
             <p className="schedule__empty-title">Сегодня нет пар</p>
             <p className="schedule__empty-subtitle">
-              Отличный повод отдохнуть!
+              Отличный повод отдохнуть
             </p>
           </div>
         </div>
@@ -136,7 +167,7 @@ export const ScheduleComponent = ({ selectedDate }) => {
         ))}
       </div>
     );
-  }, [loading, lessons, renderedDate]);
+  }, [loading, error, lessons, renderedDate]);
 
   return (
     <div className="schedule-viewport">

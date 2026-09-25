@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? 'https://api-kaist.duodev.space';
+  import.meta.env.VITE_API_BASE_URL ?? 'https://api.kaist.pro';
 
 export const API_TIMEOUT_MS = 5000;
 export const BOOTSTRAP_TIMEOUT_MS = 3000;

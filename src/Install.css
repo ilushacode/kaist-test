@@ -11,11 +11,18 @@
   justify-content: center;
   padding: 2rem;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* старый Edge/IE */
   background:
     radial-gradient(circle at 20% 0%, #f4f7fe 0%, transparent 55%),
     radial-gradient(circle at 100% 100%, #eef3fc 0%, transparent 50%),
     #ffffff;
+}
+
+.install::-webkit-scrollbar {
+  display: none;                  /* Chrome / Safari / новый Edge */
 }
 
 /* ---------- Декоративные кляксы ---------- */
