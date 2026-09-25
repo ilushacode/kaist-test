@@ -563,3 +563,53 @@ span {
   aspect-ratio: 1;
   margin-bottom: 1rem;
 }
+
+
+/* STUDENTS */
+
+.students {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+  padding-bottom: 1.5rem;
+  overflow: auto;
+}
+.students__centred {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.students__item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.students__item__left__num {
+  font-size: 1.1rem;
+  color: var(--light-font-color);
+  opacity: .8;
+  width: 9vw;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.students__item__content {
+  flex: 1;
+}
+.students__item__content__name {
+  font-size: 1.1rem;
+}
+.students__item__right {
+  color: var(--primary-color);
+}
+
+.students__empty {
+  font-size: 1.1rem;
+  color: var(--light-font-color);
+  opacity: .6;
+}
