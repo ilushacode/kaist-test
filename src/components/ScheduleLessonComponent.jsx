@@ -66,15 +66,6 @@ export const ScheduleLesson = ({ lesson, date }) => {
             {getLessonTypeLabel(lesson.type)}
           </p>
 
-          <div className="schedule_lesson__content__meta">
-            <span className="schedule_lesson__content__meta__icon">
-              <GraduationCap size={22} />
-            </span>
-            <p className="schedule_lesson__content__meta__data">
-              {capitalizeName(lesson.teacher)}
-            </p>
-          </div>
-
           <div
             className="schedule_lesson__content__meta"
             style={{ alignItems: 'center' }}
@@ -84,6 +75,15 @@ export const ScheduleLesson = ({ lesson, date }) => {
             </span>
             <p className="schedule_lesson__content__meta__data">
               {formatBuilding(lesson.building)} — {lesson.room}
+            </p>
+          </div>
+
+          <div className="schedule_lesson__content__meta">
+            <span className="schedule_lesson__content__meta__icon">
+              <GraduationCap size={22} />
+            </span>
+            <p className="schedule_lesson__content__meta__data">
+              {capitalizeName(lesson.teacher)}
             </p>
           </div>
         </div>

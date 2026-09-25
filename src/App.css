@@ -588,7 +588,8 @@
 
 .schedule_lesson__content__meta {
   display: flex;
-  gap: .5rem;
+  align-items: center;
+  gap: .8rem;
   margin-top: .5rem;
 }
 
