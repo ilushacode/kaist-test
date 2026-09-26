@@ -15,6 +15,7 @@ import { useModal } from '../providers/ModalProvider';
 import GroupsModal from './GroupsModal';
 import { TELEGRAM_CHANNEL } from '../config';
 import { useNavigate } from 'react-router-dom';
+import '../styles/MenuModal.css';
 
 const SoonBadge = () => <span className="menu-modal__badge">Скоро</span>;
 

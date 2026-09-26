@@ -6,6 +6,7 @@ import { useModal } from '../providers/ModalProvider';
 import Loader from '../components/LoaderComponent';
 import { fetchGroups } from '../api/groups';
 import { isCancelError } from '../api/client';
+import '../styles/GroupsModal.css';
 
 const DEBOUNCE_MS = 250;
 
