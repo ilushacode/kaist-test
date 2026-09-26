@@ -235,3 +235,66 @@
   color: var(--light-font-color);
   opacity: 0.55;
 }
+
+.menu-modal__item--theme {
+  position: relative;
+}
+
+/* Саб-панель */
+.menu-modal__subdropdown-inner {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem 0.5rem 0.5rem;
+  background-color: color-mix(in srgb, var(--accent-background-color) 30%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--light-font-color) 10%, transparent);
+}
+
+.menu-modal__subdropdown__item {
+  display: grid;
+  grid-template-columns: 1.1rem 1.5rem 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.65rem;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.menu-modal__subdropdown__item--active {
+  background-color: color-mix(in srgb, var(--primary-color) 8%, transparent);
+}
+
+.menu-modal__subdropdown__check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.menu-modal__subdropdown__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--light-font-color);
+  opacity: 0.85;
+}
+
+.menu-modal__subdropdown__item--active .menu-modal__subdropdown__icon {
+  color: var(--primary-color);
+  opacity: 1;
+}
+
+.menu-modal__subdropdown__label {
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--font-color);
+}
+
+.menu-modal__subdropdown__item--active .menu-modal__subdropdown__label {
+  color: var(--primary-color);
+  font-weight: 600;
+}

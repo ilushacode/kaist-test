@@ -1,10 +1,69 @@
-/* src/components/PhoneFrame.css */
+/* src/styles/PhoneFrame.css */
 
-/* Базовая разметка — на мобильных рамки нет */
+/* ============================================================
+   БАЗОВАЯ РАЗМЕТКА
+   На мобильных рамки нет — контейнер занимает весь экран.
+   ============================================================ */
+
 .phone-frame,
 .phone-frame__device {
   width: 100%;
   height: 100%;
+}
+
+/* ============================================================
+   ДЕКОРАТИВНЫЙ ФОН
+   Виден только на десктопе (см. media query ниже).
+   На мобильных блобы скрыты.
+   ============================================================ */
+
+.phone-frame__blobs {
+  display: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.phone-frame__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.9;
+  transition: background 300ms ease;
+}
+
+.phone-frame__blob--1 {
+  width: 380px;
+  height: 380px;
+  top: -80px;
+  left: -60px;
+  background: var(--desktop-blob-1);
+}
+
+.phone-frame__blob--2 {
+  width: 320px;
+  height: 320px;
+  bottom: -60px;
+  right: -40px;
+  background: var(--desktop-blob-2);
+}
+
+.phone-frame__blob--3 {
+  width: 260px;
+  height: 260px;
+  top: 40%;
+  right: 15%;
+  background: var(--desktop-blob-3);
+}
+
+.phone-frame__blob--4 {
+  width: 240px;
+  height: 240px;
+  bottom: 20%;
+  left: 12%;
+  background: var(--desktop-blob-1);
 }
 
 /* ============================================================
@@ -13,6 +72,7 @@
 
 @media (min-width: 900px) {
   .phone-frame {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -21,14 +81,21 @@
     box-sizing: border-box;
 
     background:
-      radial-gradient(circle at 20% 15%, rgba(48, 111, 206, 0.14) 0%, transparent 45%),
-      radial-gradient(circle at 85% 80%, rgba(74, 134, 232, 0.14) 0%, transparent 45%),
-      radial-gradient(circle at 50% 50%, rgba(48, 111, 206, 0.06) 0%, transparent 60%),
-      #f4f7fe;
+      radial-gradient(circle at 20% 15%, var(--desktop-blob-1) 0%, transparent 45%),
+      radial-gradient(circle at 85% 80%, var(--desktop-blob-2) 0%, transparent 45%),
+      radial-gradient(circle at 50% 50%, var(--desktop-blob-3) 0%, transparent 60%),
+      var(--desktop-base);
+
+    transition: background 300ms ease;
+  }
+
+  .phone-frame__blobs {
+    display: block;
   }
 
   .phone-frame__device {
     position: relative;
+    z-index: 1;
     width: 420px;
     max-width: 100%;
     height: calc(100dvh - 4rem);
@@ -38,9 +105,11 @@
 
     background-color: var(--background-color);
     box-shadow:
-      0 0 0 1px rgba(48, 111, 206, 0.08),
-      0 30px 60px -20px rgba(48, 111, 206, 0.35),
-      0 10px 30px -10px rgba(15, 30, 61, 0.15);
+      0 0 0 1px var(--desktop-ring),
+      0 30px 60px -20px var(--desktop-shadow-1),
+      0 10px 30px -10px var(--desktop-shadow-2);
+
+    transition: background-color 300ms ease, box-shadow 300ms ease;
 
     /* КРИТИЧНО для модалок: создаём новый containing block
        для position: fixed внутри. Теперь модалки будут
@@ -51,6 +120,17 @@
 
   .container {
     padding: 1rem;
+  }
+}
+
+/* Свечение вокруг телефона в тёмной теме */
+@media (min-width: 900px) {
+  html[data-theme='dark'] .phone-frame__device {
+    box-shadow:
+      0 0 0 1px var(--desktop-ring),
+      0 30px 60px -20px var(--desktop-shadow-1),
+      0 10px 30px -10px var(--desktop-shadow-2),
+      0 0 80px -20px rgba(91, 140, 224, 0.22);
   }
 }
 

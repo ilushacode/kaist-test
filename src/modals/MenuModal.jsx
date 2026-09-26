@@ -9,6 +9,9 @@ import {
   Plus,
   X,
   Check,
+  Monitor,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { useModal } from '../providers/ModalProvider';
@@ -22,7 +25,6 @@ const SoonBadge = () => <span className="menu-modal__badge">Скоро</span>;
 const SPRING = { type: 'spring', stiffness: 700, damping: 42, mass: 0.6 };
 const SOFT_SPRING = { type: 'spring', stiffness: 500, damping: 36, mass: 0.6 };
 
-// Каскад синхронизирован с открытием модалки (~250мс)
 const CASCADE_START = 0.08;
 const CASCADE_STEP = 0.04;
 
@@ -31,6 +33,15 @@ const cascade = (i) => ({
   animate: { opacity: 1, y: 0 },
   transition: { ...SOFT_SPRING, delay: CASCADE_START + CASCADE_STEP * i },
 });
+
+const THEME_OPTIONS = [
+  { value: 'auto', icon: Monitor, label: 'Авто' },
+  { value: 'light', icon: Sun, label: 'Светлая' },
+  { value: 'dark', icon: Moon, label: 'Тёмная' },
+];
+
+const THEME_ICON = { auto: Monitor, light: Sun, dark: Moon };
+const THEME_LABEL = { auto: 'Авто', light: 'Светлая', dark: 'Тёмная' };
 
 export default function MenuModal({ closeModal }) {
   const { openModal } = useModal();
@@ -42,7 +53,11 @@ export default function MenuModal({ closeModal }) {
   const addGroup = useStore((s) => s.addGroup);
   const removeGroup = useStore((s) => s.removeGroup);
 
+  const theme = useStore((s) => s.theme ?? 'auto');
+  const setTheme = useStore((s) => s.setTheme);
+
   const [groupsOpen, setGroupsOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
 
   const canRemove = groups.length > 1;
 
@@ -67,29 +82,27 @@ export default function MenuModal({ closeModal }) {
     });
   };
 
+  const handlePickTheme = (value) => {
+    setTheme(value);
+    setThemeOpen(false);
+  };
+
+  const ThemeIcon = THEME_ICON[theme];
+
   const sections = [
     [
       { icon: UserGroup, color: '#db960c', title: 'Одногруппники', callback: () => navigate('/students') },
       { icon: GraduationCap, color: '#ac2eeb', title: 'Преподаватели', callback: () => navigate('/teachers') },
       { icon: BookOpenText, color: '#0cdb39', title: 'Экзамены', right: <SoonBadge /> },
     ],
-    [
-      {
-        icon: Send,
-        color: '#0088CC',
-        title: 'Telegram',
-        callback: () => {
-          window.open(`https://t.me/${TELEGRAM_CHANNEL}`, '_blank', 'noopener,noreferrer');
-        },
-      },
-    ],
   ];
 
-  // Плоский индекс по всем секциям — без «дыр» и без x10
   let runningIndex = 0;
   const flatSections = sections.map((section) =>
     section.map((item) => ({ ...item, globalIndex: runningIndex++ }))
   );
+
+  const telegramIndex = runningIndex;
 
   const handleClick = (item) => {
     if (!item.callback) return;
@@ -99,7 +112,7 @@ export default function MenuModal({ closeModal }) {
 
   return (
     <div className="menu-modal">
-      {/* Блок групп — идёт в общем каскаде первым (индекс 0) */}
+      {/* --- Блок групп --- */}
       <motion.div className="menu-modal__group" {...cascade(0)}>
         <motion.button
           type="button"
@@ -153,12 +166,7 @@ export default function MenuModal({ closeModal }) {
                         onClick={() => handleSelectGroup(group)}
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
-                        exit={{
-                          opacity: 0,
-                          height: 0,
-                          marginTop: 0,
-                          marginBottom: 0,
-                        }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
                         transition={{
                           ...SPRING,
                           delay: 0,
@@ -219,7 +227,7 @@ export default function MenuModal({ closeModal }) {
         </AnimatePresence>
       </motion.div>
 
-      {/* Секции — каскад продолжается без пауз */}
+      {/* --- Основные секции (Одногруппники, Преподаватели, Экзамены) --- */}
       {flatSections.map((section, si) => (
         <div key={si} className="menu-modal__section">
           {section.map((item) => {
@@ -264,6 +272,131 @@ export default function MenuModal({ closeModal }) {
           })}
         </div>
       ))}
+
+      {/* --- Секция: Тема + Telegram --- */}
+      <div className="menu-modal__section">
+        {/* Строка темы — раскрывашка */}
+        <motion.div
+          className={`menu-modal__item menu-modal__item--clickable menu-modal__item--theme ${
+            themeOpen ? 'menu-modal__item--open' : ''
+          }`}
+          onClick={() => setThemeOpen((v) => !v)}
+          {...cascade(telegramIndex + 1)}
+          whileTap={{ scale: 0.98 }}
+        >
+          <span
+            className="menu-modal__icon"
+            style={{
+              background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+              boxShadow: '0 4px 12px -4px #6b728080',
+            }}
+          >
+            <ThemeIcon size={16} color="#fff" strokeWidth={2.2} />
+          </span>
+
+          <span className="menu-modal__title">Тема</span>
+
+          <span className="menu-modal__right">{THEME_LABEL[theme]}</span>
+
+          <motion.span
+            className="menu-modal__chevron"
+            animate={{ rotate: themeOpen ? 90 : 0 }}
+            transition={SPRING}
+          >
+            <ChevronRight size={16} strokeWidth={2.4} />
+          </motion.span>
+        </motion.div>
+
+        {/* Саб-панель с тремя опциями */}
+        <AnimatePresence initial={false}>
+          {themeOpen && (
+            <motion.div
+              className="menu-modal__subdropdown"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={SOFT_SPRING}
+              style={{ overflow: 'hidden' }}
+            >
+              <div className="menu-modal__subdropdown-inner">
+                {THEME_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  const isActive = theme === opt.value;
+
+                  return (
+                    <motion.div
+                      key={opt.value}
+                      className={`menu-modal__subdropdown__item ${
+                        isActive ? 'menu-modal__subdropdown__item--active' : ''
+                      }`}
+                      onClick={() => handlePickTheme(opt.value)}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <span className="menu-modal__subdropdown__check">
+                        <AnimatePresence>
+                          {isActive && (
+                            <motion.span
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={SPRING}
+                              style={{ display: 'flex' }}
+                            >
+                              <Check size={14} strokeWidth={2.6} />
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      </span>
+
+                      <span className="menu-modal__subdropdown__icon">
+                        <Icon size={15} strokeWidth={2} />
+                      </span>
+
+                      <span className="menu-modal__subdropdown__label">
+                        {opt.label}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Telegram — обычная строка, после саб-панели */}
+        <motion.div
+          className="menu-modal__item menu-modal__item--clickable"
+          onClick={() =>
+            window.open(
+              `https://t.me/${TELEGRAM_CHANNEL}`,
+              '_blank',
+              'noopener,noreferrer'
+            )
+          }
+          {...cascade(telegramIndex + 2)}
+          whileTap={{ scale: 0.98 }}
+        >
+          <span
+            className="menu-modal__icon"
+            style={{
+              background: 'linear-gradient(135deg, #0088CC 0%, #006699 100%)',
+              boxShadow: '0 4px 12px -4px #0088CC80',
+            }}
+          >
+            <Send size={16} color="#fff" strokeWidth={2.2} />
+          </span>
+
+          <span className="menu-modal__title">Telegram</span>
+
+          <motion.span
+            className="menu-modal__chevron"
+            animate={{ x: 0 }}
+            whileTap={{ x: 2 }}
+          >
+            <ChevronRight size={16} strokeWidth={2.4} />
+          </motion.span>
+        </motion.div>
+      </div>
     </div>
   );
 }

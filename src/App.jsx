@@ -14,6 +14,7 @@ import { StudentsPage } from './pages/StudentsPage';
 import { TeachersPage } from './pages/TeachersPage';
 import { InstallBanner } from './components/InstallBannerComponent';
 import { compareDay, getMondayOfWeek, shiftDate } from './utils/date';
+import { useTheme } from './hooks/useTheme';
 
 function getSemesterRange(today) {
   const year = today.getFullYear();
@@ -28,6 +29,8 @@ function getSemesterRange(today) {
 }
 
 function App() {
+  const resolvedTheme = useTheme();
+
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -100,7 +103,7 @@ function App() {
 
   // 4. Основной экран с роутингом
   return (
-    <div className="container theme_light">
+    <div className={`container theme_${resolvedTheme}`}>
       <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={location.pathname}>
           <Route

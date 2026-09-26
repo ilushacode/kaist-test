@@ -31,6 +31,9 @@ export const useStore = create(
       // Дата (YYYY-MM-DD) последней успешной загрузки кэша
       lastFetchedAt: null,
 
+      // Цветовая тема приложения
+      theme: 'auto',   // 'auto' | 'light' | 'dark'
+
       // --- Действия с группами ---
       addGroup: (number) => {
         const normalized = String(number).trim();
@@ -100,6 +103,14 @@ export const useStore = create(
 
       clearCache: () => set({ scheduleCache: {}, lastFetchedAt: null }),
 
+      // Установка цветовой темы
+      setTheme: (theme) => {
+        set({ theme });
+        try {
+          localStorage.setItem('theme', theme);
+        } catch {}
+      },
+
       // --- Селекторы ---
 
       /** Занятия на конкретную дату ("24.09") для группы. */
@@ -120,6 +131,7 @@ export const useStore = create(
           selectedGroup: null,
           scheduleCache: {},
           lastFetchedAt: null,
+          theme: 'auto',
         });
 
         try {
@@ -142,6 +154,7 @@ export const useStore = create(
         selectedGroup: s.selectedGroup,
         scheduleCache: s.scheduleCache,
         lastFetchedAt: s.lastFetchedAt,
+        theme: s.theme,
       }),
       migrate: (persisted, version) => {
         // v1 хранил группы как [{ number, title }] — приводим к строкам

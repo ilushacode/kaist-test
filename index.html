@@ -37,6 +37,22 @@
     </script>
     <!-- /Yandex.Metrika counter -->
     <meta name="yandex-verification" content="1c95d39b3a97ecde" />
+
+    <meta name="theme-color" content="#f2f5fb" />
+
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme') || 'auto';
+          var isDark = stored === 'dark' ||
+            (stored === 'auto' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var resolved = isDark ? 'dark' : 'light';
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.style.colorScheme = resolved;
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <noscript><div><img src="https://mc.yandex.ru/watch/113040956" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
