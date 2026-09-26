@@ -18,6 +18,8 @@
     "motion": "^13.4.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4",
+    "react-swipeable": "^7.0.2",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

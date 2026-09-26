@@ -2,15 +2,15 @@ import { Menu, X } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { useModal } from '../providers/ModalProvider';
 import MenuModal from '../modals/MenuModal';
-import { usePage } from '../hooks/usePage';
+import { useNavigate } from 'react-router-dom';
 
 export const HeaderComponent = ({ title, backButton }) => {
   const selectedGroup = useStore((s) => s.selectedGroup);
   const { openModal } = useModal();
-  const [, navigate] = usePage()
+  const navigate = useNavigate()
 
   const handleRightClick = () => {
-    if (backButton) return navigate('schedule')
+    if (backButton) return navigate('/')
     openModal(MenuModal);
   };
 

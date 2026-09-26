@@ -1,0 +1,237 @@
+/* src/styles/InstallBanner.css */
+
+.install-banner {
+  /* Позиционирование: фиксируем по центру внизу без transform */
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  margin: 0 auto;
+  max-width: 480px;
+  z-index: 999;
+
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border: 1px solid rgba(48, 111, 206, 0.12);
+  border-radius: 16px;
+
+  box-shadow:
+    0 12px 32px -12px rgba(48, 111, 206, 0.28),
+    0 2px 8px -4px rgba(15, 30, 61, 0.08);
+
+  box-sizing: border-box;
+  overflow: hidden;
+  /* никакого transform — им управляет framer-motion */
+}
+
+/* ---------- Строка ---------- */
+
+.install-banner__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.75rem 0.75rem 0.9rem;
+  cursor: default;
+}
+
+.install-banner__row--clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
+}
+
+.install-banner__row--clickable:active {
+  background: rgba(48, 111, 206, 0.04);
+}
+
+/* ---------- Иконка ---------- */
+
+.install-banner__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #306fce 0%, #4a86e8 100%);
+  border-radius: 10px;
+  box-shadow: 0 6px 14px -6px rgba(48, 111, 206, 0.6);
+}
+
+/* ---------- Текст ---------- */
+
+.install-banner__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.install-banner__title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f1e3d;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.install-banner__subtitle {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+/* ---------- Кнопка "Установить" ---------- */
+
+.install-banner__action {
+  flex: none;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: linear-gradient(135deg, #306fce 0%, #4a86e8 100%);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 14px -6px rgba(48, 111, 206, 0.55);
+  transition: transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.install-banner__action:active {
+  transform: scale(0.96);
+}
+
+/* ---------- Шеврон ---------- */
+
+.install-banner__chevron {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: #6b7280;
+}
+
+/* ---------- Кнопка "Закрыть" ---------- */
+
+.install-banner__close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
+}
+
+.install-banner__close:active {
+  background: rgba(15, 30, 61, 0.06);
+}
+
+/* ---------- Раскрытый гайд ---------- */
+
+.install-banner__guide {
+  padding: 0.5rem 1rem 0.9rem;
+  border-top: 1px solid rgba(48, 111, 206, 0.08);
+  overflow: hidden;
+}
+
+.install-banner__guide__title {
+  margin: 0.4rem 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #306fce;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.install-banner__guide__steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.install-banner__guide__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #2a3350;
+}
+
+.install-banner__guide__num {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #306fce 0%, #4a86e8 100%);
+  border-radius: 50%;
+  margin-top: 1px;
+}
+
+.install-banner__guide__fallback {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #6b7280;
+}
+
+/* ---------- Узкие экраны ---------- */
+
+@media (max-width: 380px) {
+  .install-banner__row {
+    gap: 0.6rem;
+    padding: 0.65rem 0.65rem 0.65rem 0.75rem;
+  }
+
+  .install-banner__icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .install-banner__title {
+    font-size: 0.85rem;
+  }
+
+  .install-banner__subtitle {
+    font-size: 0.7rem;
+  }
+
+  .install-banner__action {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.78rem;
+  }
+}
+
+/* ---------- prefers-reduced-motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .install-banner__chevron {
+    transition: none;
+  }
+}

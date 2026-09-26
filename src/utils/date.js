@@ -56,6 +56,15 @@ export const formatDateRange = (startDate, days) => {
   return `${formatDM(start)}-${formatDM(end)}`;
 };
 
+/** Сдвигает дату на days дней, сбрасывает время */
+export const shiftDate = (date, days) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+
 /** Понедельник недели, в которую попадает date */
 export const getMondayOfWeek = (date) => {
   const d = startOfDay(date);

@@ -1,37 +1,39 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { useSwipeable } from 'react-swipeable';
 import { ScheduleLesson } from './ScheduleLessonComponent';
 import { useStore } from '../hooks/useStore';
 import { usePrefetchImage } from '../hooks/usePrefetchImage';
 import { fetchDaySchedule } from '../api/schedule';
 import { isCancelError } from '../api/client';
-import { formatDM } from '../utils/date';
+import { formatDM, shiftDate } from '../utils/date';
 import Loader from './LoaderComponent';
 
 const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
 
-// Порог срабатывания свайпа (px) и минимальная скорость (px/ms)
-const SWIPE_DISTANCE = 80;
-const SWIPE_VELOCITY = 0.5;
-
+// Короткое смещение + opacity, чтобы между днями не было «белого пятна»
 const variants = {
-  enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%' }),
-  center: { x: 0 },
-  exit: (dir) => ({ x: dir > 0 ? '-100%' : '100%' }),
+  enter: (dir) => ({
+    x: dir > 0 ? '60%' : '-60%',
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (dir) => ({
+    x: dir > 0 ? '-60%' : '60%',
+    opacity: 0,
+  }),
 };
 
+// Пружина ощущается быстрее и мягче, чем tween
 const transition = {
-  type: 'tween',
-  ease: [0.25, 0.1, 0.25, 1],
-  duration: 0.28,
+  type: 'spring',
+  stiffness: 380,
+  damping: 32,
+  mass: 0.6,
 };
-
-function shiftDate(date, days) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
   const selectedGroup = useStore((s) => s.selectedGroup);
@@ -44,11 +46,11 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
   const [error, setError] = useState(false);
 
   const prevDateRef = useRef(selectedDate);
+  const swipeBlockRef = useRef(false);
 
-  // Предзагружаем картинку пустого расписания один раз
   usePrefetchImage(EMPTY_IMAGE_SRC);
 
-  // Следим за сменой даты: запоминаем направление и "текущую" дату
+  // Следим за сменой даты — определяем направление и обновляем renderedDate
   useEffect(() => {
     const prev = new Date(prevDateRef.current);
     prev.setHours(0, 0, 0, 0);
@@ -67,7 +69,6 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
     if (!selectedGroup) return;
 
     const key = formatDM(renderedDate);
-    // Берём актуальный кэш из store без подписки на изменения
     const cachedDays = useStore.getState().scheduleCache[selectedGroup];
     const cached = cachedDays?.[key];
 
@@ -79,12 +80,12 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
     }
 
     let cancelled = false;
+    const controller = new AbortController();
+
     setLoading(true);
     setError(false);
 
-    fetchDaySchedule(selectedGroup, key, {
-      signal: AbortSignal.timeout?.(8000),
-    })
+    fetchDaySchedule(selectedGroup, key, { signal: controller.signal })
       .then((items) => {
         if (cancelled) return;
         setLessons(items);
@@ -108,10 +109,44 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [selectedGroup, renderedDate, setGroupSchedule]);
 
   const animationKey = formatDM(renderedDate);
+
+  // --- Свайп через react-swipeable ---
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (!onDateChange) return;
+      swipeBlockRef.current = true;
+      setTimeout(() => {
+        swipeBlockRef.current = false;
+      }, 400);
+      onDateChange(shiftDate(renderedDate, 1));
+    },
+    onSwipedRight: () => {
+      if (!onDateChange) return;
+      swipeBlockRef.current = true;
+      setTimeout(() => {
+        swipeBlockRef.current = false;
+      }, 400);
+      onDateChange(shiftDate(renderedDate, -1));
+    },
+    delta: 50,
+    swipeDuration: 700,
+    trackMouse: true,
+    preventScrollOnSwipe: false,
+    touchEventOptions: { passive: true },
+  });
+
+  // Блокируем click, если только что был свайп
+  const handleClickCapture = (e) => {
+    if (swipeBlockRef.current) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
 
   const content = useMemo(() => {
     if (loading) {
@@ -177,25 +212,12 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
     );
   }, [loading, error, lessons, renderedDate]);
 
-  // Обработка окончания свайпа
-  const handleDragEnd = (_, info) => {
-    if (!onDateChange) return;
-
-    const { offset, velocity } = info;
-    const passed =
-      Math.abs(offset.x) > SWIPE_DISTANCE ||
-      Math.abs(velocity.x) > SWIPE_VELOCITY;
-
-    if (!passed) return;
-
-    // Свайп влево (offset.x < 0) → следующий день
-    // Свайп вправо (offset.x > 0) → предыдущий день
-    const delta = offset.x < 0 ? 1 : -1;
-    onDateChange(shiftDate(renderedDate, delta));
-  };
-
   return (
-    <div className="schedule-viewport">
+    <div
+      className="schedule-viewport"
+      {...swipeHandlers}
+      onClickCapture={handleClickCapture}
+    >
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
           key={animationKey}
@@ -206,10 +228,6 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
           exit="exit"
           transition={transition}
           className="schedule-page"
-          drag={onDateChange ? 'x' : false}
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.15}
-          onDragEnd={handleDragEnd}
         >
           {content}
         </motion.div>

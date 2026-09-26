@@ -1,38 +1,38 @@
 // src/App.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import './App.css';
-import { HeaderComponent } from './components/HeaderComponent';
-import { DayListComponent } from './components/DayListComponent';
-import { ScheduleComponent } from './components/ScheduleComponent';
 import { LoaderScreen } from './screens/LoaderScreen';
-import { InstallScreen } from './screens/InstallScreen';
 import { SetGroupComponent } from './components/SetGroupComponent';
 import useBootstrap from './hooks/useBootstrap';
 import { useStore } from './hooks/useStore';
-import { usePage } from './hooks/usePage';
 import { MIN_LOADER_MS } from './config';
-import { isMobileDevice, isStandaloneMode } from './utils/pwa';
 import { SchedulePage } from './pages/SchedulePage';
 import { StudentsPage } from './pages/StudentsPage';
+import { InstallBanner } from './components/InstallBannerComponent';
+import { PhoneFrame } from './components/PhoneFrameComponent';
+import { compareDay, getMondayOfWeek, shiftDate } from './utils/date';
 
 /**
- * Заглушка для экранов, которые ещё не сделаны.
- * Замени на реальные компоненты по мере готовности.
+ * Границы семестра — те же, что в DayListComponent.
+ * Держим синхронно, чтобы не давать листать за пределы учебного года.
  */
-function PlaceholderPage({ title }) {
-  return <div className="container theme_light">{title}</div>;
+function getSemesterRange(today) {
+  const year = today.getFullYear();
+
+  const autumnStart = new Date(year, 8, 1);   // 1 сентября
+  const autumnEnd = new Date(year, 11, 31);   // 31 декабря
+
+  if (compareDay(today, autumnEnd) <= 0) {
+    return { start: autumnStart, end: autumnEnd };
+  }
+
+  const springStart = new Date(year + 1, 1, 1);  // 1 февраля
+  const springEnd = new Date(year + 1, 4, 31);   // 31 мая
+  return { start: springStart, end: springEnd };
 }
 
-const PAGES = {
-  schedule: SchedulePage,
-  students: StudentsPage,
-  settings: PlaceholderPage,
-};
-
-/**
- * Основное приложение. Вызывается ТОЛЬКО в PWA-режиме.
- */
-function ScheduleApp() {
+function App() {
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -46,8 +46,6 @@ function ScheduleApp() {
   const selectedGroup = useStore((s) => s.selectedGroup);
   const ready = useBootstrap(today);
 
-  const [page] = usePage();
-
   // Сброс даты при смене группы
   const prevGroupRef = useRef(selectedGroup);
   useEffect(() => {
@@ -57,61 +55,68 @@ function ScheduleApp() {
     }
   }, [selectedGroup, today]);
 
+  // Минимальная задержка лоадера, чтобы не мигало
   useEffect(() => {
     const timer = setTimeout(() => setMinTimePassed(true), MIN_LOADER_MS);
     return () => clearTimeout(timer);
   }, []);
 
-  if (!ready || !minTimePassed) return <LoaderScreen />;
-  if (groups.length === 0) return <SetGroupComponent />;
+  // Границы семестра
+  const { start: semesterStart, end: semesterEnd } = useMemo(
+    () => getSemesterRange(today),
+    [today]
+  );
 
-  const Page = PAGES[page] ?? PAGES.schedule;
+  // Понедельник текущей недели выбранной даты
+  const currentMonday = useMemo(
+    () => getMondayOfWeek(selectedDate),
+    [selectedDate]
+  );
 
+  // Можно ли листнуть на неделю назад/вперёд
+  const canPrev = compareDay(shiftDate(currentMonday, -7), semesterStart) >= 0;
+  const canNext = compareDay(shiftDate(currentMonday, 7), semesterEnd) <= 0;
+
+  const handlePrevWeek = () => {
+    if (!canPrev) return;
+    setSelectedDate(shiftDate(currentMonday, -7));
+  };
+
+  const handleNextWeek = () => {
+    if (!canNext) return;
+    setSelectedDate(shiftDate(currentMonday, 7));
+  };
+
+  // 1. Bootstrap ещё не готов или не прошла минимальная задержка
+  if (!ready || !minTimePassed) {
+    return <LoaderScreen />;
+  }
+
+  // 2. Bootstrap готов, но групп нет — просим выбрать
+  if (groups.length === 0) {
+    return <SetGroupComponent />;
+  }
+
+  // 3. Основной экран с роутингом
   return (
     <div className="container theme_light">
-      <Page
-        today={today}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        title={page}
-      />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <SchedulePage
+              today={today}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+            />
+          }
+        />
+        <Route path="/students" element={<StudentsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      <InstallBanner />
     </div>
-  );
-}
-
-/** Читает dev-override из URL. Возвращает null в production. */
-function readDevOverrides() {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
-
-  const params = new URLSearchParams(window.location.search);
-
-  const device = params.get('device');   // "mobile" | "desktop" | null
-  const os = params.get('os');           // "ios" | "android" | "other" | null
-  const browser = params.get('browser'); // "safari" | "chrome" | ... | null
-  const screen = params.get('screen');   // "install" | null
-
-  return { device, os, browser, screen };
-}
-
-function App() {
-  const overrides = readDevOverrides();
-
-  // Принудительно показать InstallScreen в dev
-  const forceInstall = overrides?.screen === 'install';
-
-  if (!forceInstall && isStandaloneMode()) return <ScheduleApp />;
-
-  // Мобильность: override → автоопределение
-  let isMobile = isMobileDevice();
-  if (overrides?.device === 'mobile') isMobile = true;
-  if (overrides?.device === 'desktop') isMobile = false;
-
-  return (
-    <InstallScreen
-      isMobile={isMobile}
-      osOverride={overrides?.os ?? null}
-      browserOverride={overrides?.browser ?? null}
-    />
   );
 }
 

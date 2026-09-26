@@ -4,11 +4,17 @@ import './dev/resetApp';
 import './index.css'
 import App from './App.jsx'
 import { ModalProvider } from './providers/ModalProvider.jsx';
+import { BrowserRouter } from 'react-router-dom';
+import { PhoneFrame } from './components/PhoneFrameComponent.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ModalProvider>
-      <App />
-    </ModalProvider>
+    <PhoneFrame>
+      <BrowserRouter>
+        <ModalProvider>
+          <App />
+        </ModalProvider>
+      </BrowserRouter>
+    </PhoneFrame>
   </StrictMode>,
 )

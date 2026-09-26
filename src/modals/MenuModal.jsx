@@ -10,7 +10,7 @@ import { useStore } from '../hooks/useStore';
 import { useModal } from '../providers/ModalProvider';
 import GroupsModal from './GroupsModal';
 import { TELEGRAM_CHANNEL } from '../config';
-import { usePage } from '../hooks/usePage';
+import { useNavigate } from 'react-router-dom';
 
 const SoonBadge = () => (
   <span
@@ -27,7 +27,7 @@ const SoonBadge = () => (
 export default function MenuModal({ closeModal }) {
   const { openModal } = useModal();
   const selectedGroup = useStore((s) => s.selectedGroup);
-  const [, navigate] = usePage();
+  const navigate = useNavigate()
 
   const sections = [
     [
@@ -45,7 +45,7 @@ export default function MenuModal({ closeModal }) {
         icon: UserGroup,
         color: '#db960c',
         title: 'Одногруппники',
-        callback: () => navigate('students'),
+        callback: () => navigate('/students'),
       },
       {
         icon: BookOpenText,
