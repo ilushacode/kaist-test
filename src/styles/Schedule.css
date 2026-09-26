@@ -1,5 +1,19 @@
 /* SCHEDULE */
 
+.schedule-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.schedule-viewport {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .schedule {
   flex: 1;
   min-height: 0;

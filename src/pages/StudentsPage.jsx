@@ -2,10 +2,11 @@ import { motion } from 'motion/react';
 import { HeaderComponent } from "../components/HeaderComponent";
 import { StudentsComponent } from "../components/StudentsComponent";
 
-export function StudentsPage({ today, selectedDate, setSelectedDate }) {
+export function StudentsPage({  }) {
   return (
     <motion.div
-      className="schedule-page-wrapper"
+      className="students-page-wrapper"
+      style={{flex: 1}}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
