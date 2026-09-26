@@ -5,6 +5,7 @@ import { useStore } from "../hooks/useStore";
 import { isCancelError } from "../api/client";
 import Loader from "./LoaderComponent";
 import { usePrefetchImage } from "../hooks/usePrefetchImage";
+import '../styles/Students.css'
 
 const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
 
