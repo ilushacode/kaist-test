@@ -8,6 +8,7 @@ import { fetchDaySchedule } from '../api/schedule';
 import { isCancelError } from '../api/client';
 import { formatDM, shiftDate } from '../utils/date';
 import Loader from './LoaderComponent';
+import '../styles/Schedule.css'
 
 const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
 

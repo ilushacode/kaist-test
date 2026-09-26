@@ -1,12 +1,12 @@
 import { useEffect, useReducer } from 'react';
-import { GraduationCap, School } from 'lucide-react';
+import { School } from 'lucide-react';
 import {
   addMinutes,
   isLessonNow,
   isLessonPast,
   stripLeadingZero,
 } from '../utils/date';
-import { capitalizeName, formatBuilding } from '../utils/string';
+import { formatBuilding } from '../utils/string';
 import { getLessonTypeLabel } from '../utils/lesson';
 import { useModal } from '../providers/ModalProvider';
 import LessonModal from '../modals/LessonModal';
@@ -14,10 +14,8 @@ import LessonModal from '../modals/LessonModal';
 const TICK_INTERVAL_MS = 60_000;
 
 export const ScheduleLesson = ({ lesson, date }) => {
-  // Форсируем ре-рендер раз в минуту, чтобы обновить статус "сейчас/прошло"
   const [, tick] = useReducer((n) => n + 1, 0);
-
-  const { openModal } = useModal()
+  const { openModal } = useModal();
 
   useEffect(() => {
     const id = setInterval(tick, TICK_INTERVAL_MS);
@@ -39,8 +37,8 @@ export const ScheduleLesson = ({ lesson, date }) => {
     .join(' ');
 
   const handleLessonClick = () => {
-    openModal(LessonModal, { lesson, date })
-  }
+    openModal(LessonModal, { lesson, date });
+  };
 
   return (
     <div className="schedule_lesson" onClick={handleLessonClick}>
@@ -61,30 +59,21 @@ export const ScheduleLesson = ({ lesson, date }) => {
 
       <div className="schedule_lesson__content__wrapper">
         <div className={contentClass}>
-          <p className="schedule_lesson__content__title">{lesson.subject}</p>
-          <p className="schedule_lesson__content__type">
+          <span className="schedule_lesson__content__type">
             {getLessonTypeLabel(lesson.type)}
-          </p>
+          </span>
 
-          <div
-            className="schedule_lesson__content__meta"
-            style={{ alignItems: 'center' }}
-          >
-            <span className="schedule_lesson__content__meta__icon">
-              <School size={20} />
-            </span>
-            <p className="schedule_lesson__content__meta__data">
-              {formatBuilding(lesson.building)} — {lesson.room}
-            </p>
-          </div>
+          <h3 className="schedule_lesson__content__title">
+            {lesson.subject}
+          </h3>
 
           <div className="schedule_lesson__content__meta">
             <span className="schedule_lesson__content__meta__icon">
-              <GraduationCap size={22} />
+              <School size={14} strokeWidth={1.6} />
             </span>
-            <p className="schedule_lesson__content__meta__data">
-              {capitalizeName(lesson.teacher)}
-            </p>
+            <span className="schedule_lesson__content__meta__text">
+              {formatBuilding(lesson.building)} — {lesson.room}
+            </span>
           </div>
         </div>
       </div>
