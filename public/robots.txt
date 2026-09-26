@@ -1,4 +1,6 @@
 User-agent: *
+Disallow: /students
+Disallow: /teachers
 Allow: /
 
 Sitemap: https://kaist.pro/sitemap.xml
