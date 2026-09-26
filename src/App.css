@@ -148,35 +148,6 @@
 }
 
 
-/* HEADER */
-
-.header {
-  user-select: none;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.header__left {
-  flex: 1;
-}
-.header__left__title {
-  font-weight: 600;
-  font-size: 1.5rem;
-  letter-spacing: 5%;
-}
-.header__left__group {
-  color: var(--light-font-color);
-  font-size: .9rem;
-  margin-top: .2rem;
-}
-.header__right {
-  color: var(--light-font-color);
-  cursor: pointer;
-  padding: .3rem 1rem;
-}
-
-
 /* DAY LIST */
 
 .day_list {
