@@ -12,6 +12,7 @@ import { SchedulePage } from './pages/SchedulePage';
 import { StudentsPage } from './pages/StudentsPage';
 import { InstallBanner } from './components/InstallBannerComponent';
 import { compareDay, getMondayOfWeek, shiftDate } from './utils/date';
+import { TeachersPage } from './pages/TeachersPage';
 
 function getSemesterRange(today) {
   const year = today.getFullYear();
@@ -103,6 +104,7 @@ function App() {
             }
           />
           <Route path="/students" element={<StudentsPage />} />
+          <Route path="/teachers" element={<TeachersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>

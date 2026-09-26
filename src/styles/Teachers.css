@@ -1,0 +1,142 @@
+/* TEACHERS */
+
+.teachers-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.teachers {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 1.5rem 2.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.teachers::-webkit-scrollbar {
+  display: none;
+}
+
+.teachers__centred {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.teachers__empty {
+  font-size: 1.05rem;
+  color: var(--light-font-color);
+  opacity: 0.6;
+  text-align: center;
+}
+
+/* --- Строка преподавателя (без карточки) --- */
+
+.teachers__item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.35rem 0;
+}
+
+/* Тонкий разделитель между строками */
+.teachers__item + .teachers__item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 3.6rem;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--primary-color) 25%, transparent) 0%,
+    color-mix(in srgb, var(--light-font-color) 10%, transparent) 40%,
+    transparent 100%
+  );
+}
+
+/* Аватар — outline-стиль, стеклянный */
+.teachers__avatar {
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  background: color-mix(in srgb, var(--primary-color) 6%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+.teachers__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.2rem;
+}
+
+.teachers__name {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--font-color);
+  line-height: 1.25;
+  margin: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Кафедра — мелкая uppercase-метка с тонкой линией слева */
+.teachers__department {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--light-font-color);
+  line-height: 1.4;
+  margin: 0;
+  padding-left: 0.75rem;
+  position: relative;
+}
+
+.teachers__department::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.4rem;
+  height: 1px;
+  background-color: var(--primary-color);
+  opacity: 0.7;
+}
+
+/* Предметы — текст, но чуть выделенный */
+.teachers__subjects {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--font-color);
+  opacity: 0.7;
+  line-height: 1.4;
+  margin: 0;
+  padding-left: 0.75rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}

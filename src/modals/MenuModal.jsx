@@ -70,8 +70,8 @@ export default function MenuModal({ closeModal }) {
   const sections = [
     [
       { icon: UserGroup, color: '#db960c', title: 'Одногруппники', callback: () => navigate('/students') },
+      { icon: GraduationCap, color: '#ac2eeb', title: 'Преподаватели', callback: () => navigate('/teachers') },
       { icon: BookOpenText, color: '#0cdb39', title: 'Экзамены', right: <SoonBadge /> },
-      { icon: GraduationCap, color: '#ac2eeb', title: 'Преподаватели', right: <SoonBadge /> },
     ],
     [
       {
