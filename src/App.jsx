@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import './App.css';
 import { LoaderScreen } from './screens/LoaderScreen';
 import { SetGroupComponent } from './components/SetGroupComponent';
@@ -10,25 +11,17 @@ import { MIN_LOADER_MS } from './config';
 import { SchedulePage } from './pages/SchedulePage';
 import { StudentsPage } from './pages/StudentsPage';
 import { InstallBanner } from './components/InstallBannerComponent';
-import { PhoneFrame } from './components/PhoneFrameComponent';
 import { compareDay, getMondayOfWeek, shiftDate } from './utils/date';
 
-/**
- * Границы семестра — те же, что в DayListComponent.
- * Держим синхронно, чтобы не давать листать за пределы учебного года.
- */
 function getSemesterRange(today) {
   const year = today.getFullYear();
-
-  const autumnStart = new Date(year, 8, 1);   // 1 сентября
-  const autumnEnd = new Date(year, 11, 31);   // 31 декабря
-
+  const autumnStart = new Date(year, 8, 1);
+  const autumnEnd = new Date(year, 11, 31);
   if (compareDay(today, autumnEnd) <= 0) {
     return { start: autumnStart, end: autumnEnd };
   }
-
-  const springStart = new Date(year + 1, 1, 1);  // 1 февраля
-  const springEnd = new Date(year + 1, 4, 31);   // 31 мая
+  const springStart = new Date(year + 1, 1, 1);
+  const springEnd = new Date(year + 1, 4, 31);
   return { start: springStart, end: springEnd };
 }
 
@@ -39,6 +32,7 @@ function App() {
     return d;
   }, []);
 
+  const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(today);
   const [minTimePassed, setMinTimePassed] = useState(false);
 
@@ -46,7 +40,6 @@ function App() {
   const selectedGroup = useStore((s) => s.selectedGroup);
   const ready = useBootstrap(today);
 
-  // Сброс даты при смене группы
   const prevGroupRef = useRef(selectedGroup);
   useEffect(() => {
     if (prevGroupRef.current !== selectedGroup) {
@@ -55,25 +48,21 @@ function App() {
     }
   }, [selectedGroup, today]);
 
-  // Минимальная задержка лоадера, чтобы не мигало
   useEffect(() => {
     const timer = setTimeout(() => setMinTimePassed(true), MIN_LOADER_MS);
     return () => clearTimeout(timer);
   }, []);
 
-  // Границы семестра
   const { start: semesterStart, end: semesterEnd } = useMemo(
     () => getSemesterRange(today),
     [today]
   );
 
-  // Понедельник текущей недели выбранной даты
   const currentMonday = useMemo(
     () => getMondayOfWeek(selectedDate),
     [selectedDate]
   );
 
-  // Можно ли листнуть на неделю назад/вперёд
   const canPrev = compareDay(shiftDate(currentMonday, -7), semesterStart) >= 0;
   const canNext = compareDay(shiftDate(currentMonday, 7), semesterEnd) <= 0;
 
@@ -87,33 +76,36 @@ function App() {
     setSelectedDate(shiftDate(currentMonday, 7));
   };
 
-  // 1. Bootstrap ещё не готов или не прошла минимальная задержка
   if (!ready || !minTimePassed) {
     return <LoaderScreen />;
   }
 
-  // 2. Bootstrap готов, но групп нет — просим выбрать
   if (groups.length === 0) {
     return <SetGroupComponent />;
   }
 
-  // 3. Основной экран с роутингом
   return (
     <div className="container theme_light">
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <SchedulePage
-              today={today}
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-            />
-          }
-        />
-        <Route path="/students" element={<StudentsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AnimatePresence mode="wait" initial={false}>
+        <Routes location={location} key={location.pathname}>
+          <Route
+            path="/"
+            element={
+              <SchedulePage
+                today={today}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                onPrevWeek={handlePrevWeek}
+                onNextWeek={handleNextWeek}
+                canPrev={canPrev}
+                canNext={canNext}
+              />
+            }
+          />
+          <Route path="/students" element={<StudentsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
 
       <InstallBanner />
     </div>
