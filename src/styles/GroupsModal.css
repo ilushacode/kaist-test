@@ -1,0 +1,220 @@
+/* GROUPS MODAL */
+
+.groups_modal {
+  display: flex;
+  flex-direction: column;
+  height: 68vh;
+  max-height: 34rem;
+  padding: 0.5rem 1.25rem 1.25rem;
+  overflow: hidden;
+}
+
+/* --- Шапка --- */
+
+.groups_modal__header {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 0 1.25rem;
+  flex-shrink: 0;
+}
+
+.groups_modal__label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--primary-color);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.groups_modal__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--font-color);
+  margin: 0;
+}
+
+.groups_modal__subtitle {
+  font-size: 0.85rem;
+  color: var(--light-font-color);
+  margin: 0.6rem 0 0;
+}
+
+.groups_modal__subtitle > span {
+  color: var(--font-color);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Поле ввода --- */
+
+.groups_modal__form {
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.groups_modal__input-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.groups_modal__input-icon {
+  position: absolute;
+  left: 0.9rem;
+  color: var(--light-font-color);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.groups_modal__input {
+  width: 100%;
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 0.85rem 2.5rem 0.85rem 2.4rem;
+  border-radius: 0.9rem;
+  outline: none;
+  border: 1px solid color-mix(in srgb, var(--light-font-color) 18%, transparent);
+  background-color: color-mix(in srgb, var(--accent-background-color) 55%, transparent);
+  color: var(--font-color);
+  -webkit-tap-highlight-color: transparent;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.groups_modal__input::placeholder {
+  color: var(--light-font-color);
+  opacity: 0.6;
+}
+.groups_modal__input:focus {
+  border-color: color-mix(in srgb, var(--primary-color) 50%, transparent);
+  background-color: color-mix(in srgb, var(--accent-background-color) 80%, transparent);
+}
+
+/* --- Результаты (скролл без полосы) --- */
+
+.groups_modal__results {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+
+  /* Скрываем полосу прокрутки */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.groups_modal__results::-webkit-scrollbar {
+  display: none;
+}
+
+/* Состояние «пусто» — центрируем плейсхолдер по вертикали */
+.groups_modal__results--centered {
+  justify-content: center;
+  align-items: center;
+}
+
+.groups_modal__placeholder {
+  font-size: 0.9rem;
+  color: var(--light-font-color);
+  opacity: 0.65;
+  text-align: center;
+  margin: 0;
+}
+
+/* --- Строка результата --- */
+
+.groups_modal__item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.25rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font: inherit;
+  color: var(--font-color);
+  text-align: left;
+  position: relative;
+  flex-shrink: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--light-font-color) 12%, transparent);
+}
+.groups_modal__item:last-of-type {
+  border-bottom: none;
+}
+
+.groups_modal__item__num {
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+  color: var(--font-color);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Состояние: группа уже в избранном */
+.groups_modal__item--added .groups_modal__item__num {
+  color: var(--light-font-color);
+  opacity: 0.8;
+}
+
+/* Состояние: группа активна (текущая выбранная) */
+.groups_modal__item--active .groups_modal__item__num {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Кнопка «Добавить вручную» — акцентный цвет */
+.groups_modal__item--manual .groups_modal__item__num {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* --- Действие справа (плюс / галочка / крестик) --- */
+
+.groups_modal__item__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 0.55rem;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Добавление — акцентный синий */
+.groups_modal__item__action--add {
+  background-color: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
+}
+
+/* Уже добавлено (последняя группа, удалить нельзя) — серый чек */
+.groups_modal__item__action--check {
+  background-color: color-mix(in srgb, var(--light-font-color) 15%, transparent);
+  color: var(--light-font-color);
+}
+
+/* Удаление — красный крестик при тапе */
+.groups_modal__item__action--remove {
+  background-color: color-mix(in srgb, var(--light-font-color) 15%, transparent);
+  color: var(--light-font-color);
+  cursor: pointer;
+}
+.groups_modal__item__action--remove:active {
+  background-color: color-mix(in srgb, #ff3b30 18%, transparent);
+  color: #ff3b30;
+}

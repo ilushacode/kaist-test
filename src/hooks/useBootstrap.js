@@ -13,6 +13,11 @@ const groupsKey = (groups) => groups.join('|');
  * Загружает расписание на 14 дней вперёд для всех групп.
  * Возвращает true, когда данные готовы (или bootstrap завершился с ошибкой).
  *
+ * Логика ready:
+ * - Холодный старт (нет кэша ни для одной группы) → ready=false, показываем лоадер.
+ * - Добавление/удаление группы при наличии кэша → ready остаётся true,
+ *   расписание догружается в фоне без моргания лоадером.
+ *
  * @param {Date} today — сегодняшняя дата (стабильная ссылка)
  */
 export default function useBootstrap(today) {
@@ -26,8 +31,6 @@ export default function useBootstrap(today) {
     let cancelled = false;
     const controller = new AbortController();
 
-    setReady(false);
-
     (async () => {
       const {
         groups: currentGroups,
@@ -37,9 +40,20 @@ export default function useBootstrap(today) {
         scheduleCache,
       } = useStore.getState();
 
+      // Групп нет — сразу готовы (App.jsx покажет SetGroupComponent)
       if (currentGroups.length === 0) {
         if (!cancelled) setReady(true);
         return;
+      }
+
+      // «Холодный старт» — ни для одной группы нет кэша.
+      // Только в этом случае показываем лоадер.
+      // В остальных сценариях (добавление/удаление группы) ready не трогаем.
+      const hasAnyCache = currentGroups.some((g) => scheduleCache[g]);
+      const isColdStart = !ready && !hasAnyCache;
+
+      if (isColdStart && !cancelled) {
+        setReady(false);
       }
 
       const dateParam = formatDateRange(today, BOOTSTRAP_RANGE_DAYS);
