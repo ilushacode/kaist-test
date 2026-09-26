@@ -9,6 +9,7 @@ import { capitalizeName } from '../utils/string';
 import '../styles/Teachers.css';
 
 const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
+const ERROR_IMAGE_SRC = '/images/goose_error.png';
 
 const SPRING = { type: 'spring', stiffness: 500, damping: 38, mass: 0.6 };
 const CASCADE_STEP = 0.04;
@@ -34,6 +35,7 @@ export const TeachersComponent = () => {
 
   const selectedGroup = useStore((s) => s.selectedGroup);
   usePrefetchImage(EMPTY_IMAGE_SRC);
+  usePrefetchImage(ERROR_IMAGE_SRC);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,20 +79,18 @@ export const TeachersComponent = () => {
   if (error) {
     return (
       <div className="teachers__centred">
-        <div>
-          <img
-            src={EMPTY_IMAGE_SRC}
-            alt="Гусь спит"
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-            className="schedule__empty-image"
-          />
-          <p className="schedule__empty-title">Не удалось выполнить запрос</p>
-          <p className="schedule__empty-subtitle">
-            Проверьте соединение или попробуйте позже
-          </p>
-        </div>
+        <img
+          src={ERROR_IMAGE_SRC}
+          alt="Гусь спит"
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+          className="schedule__empty-image"
+        />
+        <p className="schedule__empty-title">Произошла ошибка</p>
+        <p className="schedule__empty-subtitle">
+          Проверьте соединение или попробуйте позже
+        </p>
       </div>
     );
   }

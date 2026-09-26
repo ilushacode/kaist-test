@@ -1,0 +1,162 @@
+/* SET GROUP */
+
+.set_group {
+  height: 100%;
+  width: 100%;
+  background-color: var(--background-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1.5rem;
+  padding-top: calc(3rem + env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.set_group::-webkit-scrollbar { display: none; }
+
+.set_group__inner {
+  position: relative;
+  width: 100%;
+  max-width: 26rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Заголовок */
+.set_group__title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--font-color);
+  margin: 0;
+}
+
+/* Подзаголовок */
+.set_group__subtitle {
+  color: var(--light-font-color);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0.5rem 0 0;
+}
+
+/* Форма */
+.set_group__form {
+  position: relative;
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.set_group__input-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.set_group__input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--light-font-color);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.set_group__input {
+  width: 100%;
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 0.95rem 2.75rem 0.95rem 2.75rem;
+  border-radius: 1rem;
+  outline: none;
+  border: 1px solid color-mix(in srgb, var(--light-font-color) 18%, transparent);
+  background-color: color-mix(in srgb, var(--accent-background-color) 55%, transparent);
+  color: var(--font-color);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+.set_group__input::placeholder {
+  color: var(--light-font-color);
+  opacity: 0.6;
+}
+.set_group__input:focus {
+  border-color: color-mix(in srgb, var(--primary-color) 50%, transparent);
+  background-color: color-mix(in srgb, var(--accent-background-color) 80%, transparent);
+}
+
+/* Результаты */
+.set_group__results {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 5rem;
+}
+
+.set_group__placeholder {
+  font-size: 0.85rem;
+  color: var(--light-font-color);
+  opacity: 0.65;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+/* Строка результата */
+.set_group__item {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--light-font-color) 12%, transparent);
+  background-color: color-mix(in srgb, var(--accent-background-color) 55%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  font: inherit;
+  color: var(--font-color);
+  text-align: left;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.set_group__item:active {
+  background-color: color-mix(in srgb, var(--accent-background-color) 90%, transparent);
+  border-color: color-mix(in srgb, var(--primary-color) 35%, transparent);
+}
+
+.set_group__item__num {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  font-variant-numeric: tabular-nums;
+  color: var(--font-color);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set_group__item__arrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  color: var(--primary-color);
+}
+
+/* Кнопка «Добавить вручную» */
+.set_group__item--manual .set_group__item__num {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.set_group__item--manual {
+  border-color: color-mix(in srgb, var(--primary-color) 30%, transparent);
+  background-color: color-mix(in srgb, var(--primary-color) 6%, transparent);
+}

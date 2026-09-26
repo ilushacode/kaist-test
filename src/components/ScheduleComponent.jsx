@@ -8,11 +8,47 @@ import { fetchDaySchedule } from '../api/schedule';
 import { isCancelError } from '../api/client';
 import { formatDM, shiftDate } from '../utils/date';
 import Loader from './LoaderComponent';
-import '../styles/Schedule.css'
+import '../styles/Schedule.css';
 
 const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
 
-// Короткое смещение + opacity, чтобы между днями не было «белого пятна»
+// Подписи под «Сегодня нет пар» — меняются при каждой смене дня
+const EMPTY_SUBTITLES = [
+  'Гусь тоже отдыхает',
+  'Можно спать дальше',
+  'Время пить чай',
+  'Лектор тоже человек',
+  'Пара ушла. Никто не видел',
+  'Расписание решило взять выходной',
+  'Учебники скучают по тебе',
+  'Сходи погуляй, что ли',
+  'Никто не придёт. Даже не жди',
+  'Пар нет. Это не ошибка',
+  'День для сериалов',
+  'Профессор ушёл в запой',
+  'Твоя кровать сегодня в приоритете',
+  'Отдохни, ты заслужил',
+  'Небо сегодня безоблачное. Совпадение?',
+  'Аудитория свободна. Наслаждайся',
+  'Можно ничего не делать. Официально',
+  'Учиться — не сегодня',
+  'Спина разгружается',
+  'Прогуляй пару. Её всё равно нет',
+  'Время стать немного счастливее',
+  'Сегодня твой день. Пользуйся',
+  'Всё идёт по плану. Плана нет',
+  'Кофе ждёт тебя',
+  'Никаких будильников',
+  'Иди поешь нормально',
+  'Свобода! (пока что)',
+  'Пары отменили. Даже не спрашивай',
+  'День для ничего',
+  'Мозг в отпуске',
+  'Дыши. Просто дыши',
+  'Так даже лучше',
+  'Ты и без пар неплох',
+];
+
 const variants = {
   enter: (dir) => ({
     x: dir > 0 ? '60%' : '-60%',
@@ -28,7 +64,6 @@ const variants = {
   }),
 };
 
-// Пружина ощущается быстрее и мягче, чем tween
 const transition = {
   type: 'spring',
   stiffness: 380,
@@ -45,6 +80,7 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [emptySubtitleIndex, setEmptySubtitleIndex] = useState(0);
 
   const prevDateRef = useRef(selectedDate);
   const swipeBlockRef = useRef(false);
@@ -64,6 +100,18 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
       prevDateRef.current = selectedDate;
     }
   }, [selectedDate]);
+
+  // Меняем подпись на новую при каждой смене дня
+  useEffect(() => {
+    setEmptySubtitleIndex((prev) => {
+      if (EMPTY_SUBTITLES.length <= 1) return prev;
+      let next = prev;
+      while (next === prev) {
+        next = Math.floor(Math.random() * EMPTY_SUBTITLES.length);
+      }
+      return next;
+    });
+  }, [renderedDate]);
 
   // Загрузка занятий для отрисованной даты
   useEffect(() => {
@@ -141,7 +189,6 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
     touchEventOptions: { passive: true },
   });
 
-  // Блокируем click, если только что был свайп
   const handleClickCapture = (e) => {
     if (swipeBlockRef.current) {
       e.stopPropagation();
@@ -160,8 +207,8 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
 
     if (error && lessons.length === 0) {
       return (
-        <div className="schedule schedule--centered">
-          <div>
+        <div className="schedule">
+          <div className="schedule--centered">
             <img
               src={EMPTY_IMAGE_SRC}
               alt="Гусь спит"
@@ -183,8 +230,8 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
 
     if (lessons.length === 0) {
       return (
-        <div className="schedule schedule--centered">
-          <div>
+        <div className="schedule">
+          <div className="schedule--centered">
             <img
               src={EMPTY_IMAGE_SRC}
               alt="Гусь спит"
@@ -195,7 +242,7 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
             />
             <p className="schedule__empty-title">Сегодня нет пар</p>
             <p className="schedule__empty-subtitle">
-              Отличный повод отдохнуть
+              {EMPTY_SUBTITLES[emptySubtitleIndex]}
             </p>
           </div>
         </div>
@@ -211,7 +258,7 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
         ))}
       </div>
     );
-  }, [loading, error, lessons, renderedDate]);
+  }, [loading, error, lessons, renderedDate, emptySubtitleIndex]);
 
   return (
     <div

@@ -1,18 +1,19 @@
 // src/App.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import './App.css';
 import { LoaderScreen } from './screens/LoaderScreen';
 import { SetGroupComponent } from './components/SetGroupComponent';
+import { HelloComponent } from './components/HelloComponent';
 import useBootstrap from './hooks/useBootstrap';
 import { useStore } from './hooks/useStore';
 import { MIN_LOADER_MS } from './config';
 import { SchedulePage } from './pages/SchedulePage';
 import { StudentsPage } from './pages/StudentsPage';
+import { TeachersPage } from './pages/TeachersPage';
 import { InstallBanner } from './components/InstallBannerComponent';
 import { compareDay, getMondayOfWeek, shiftDate } from './utils/date';
-import { TeachersPage } from './pages/TeachersPage';
 
 function getSemesterRange(today) {
   const year = today.getFullYear();
@@ -36,6 +37,7 @@ function App() {
   const location = useLocation();
   const [selectedDate, setSelectedDate] = useState(today);
   const [minTimePassed, setMinTimePassed] = useState(false);
+  const [helloPassed, setHelloPassed] = useState(false);
 
   const groups = useStore((s) => s.groups);
   const selectedGroup = useStore((s) => s.selectedGroup);
@@ -77,14 +79,26 @@ function App() {
     setSelectedDate(shiftDate(currentMonday, 7));
   };
 
+  // 1. Bootstrap ещё не готов или не прошла минимальная задержка
   if (!ready || !minTimePassed) {
     return <LoaderScreen />;
   }
 
+  // 2. Групп нет и приветствие не пройдено — показываем hello
+  if (groups.length === 0 && !helloPassed) {
+    return (
+      <div className="container theme_light">
+        <HelloComponent onContinue={() => setHelloPassed(true)} />
+      </div>
+    );
+  }
+
+  // 3. Групп нет, но приветствие уже пройдено — выбор группы
   if (groups.length === 0) {
     return <SetGroupComponent />;
   }
 
+  // 4. Основной экран с роутингом
   return (
     <div className="container theme_light">
       <AnimatePresence mode="wait" initial={false}>

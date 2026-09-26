@@ -8,6 +8,7 @@ import { usePrefetchImage } from "../hooks/usePrefetchImage";
 import '../styles/Students.css'
 
 const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
+const ERROR_IMAGE_SRC = '/images/goose_error.png';
 
 export const StudentsComponent = () => {
   const [students, setStudents] = useState([]);
@@ -16,6 +17,7 @@ export const StudentsComponent = () => {
 
   const selectedGroup = useStore((s) => s.selectedGroup);
   usePrefetchImage(EMPTY_IMAGE_SRC);
+  usePrefetchImage(ERROR_IMAGE_SRC);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,22 +54,20 @@ export const StudentsComponent = () => {
         </div>
       ) : error ? (
         <div className="students__centred">
-          <div>
-            <img
-              src={EMPTY_IMAGE_SRC}
-              alt="Гусь спит"
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-              className="schedule__empty-image"
-            />
-            <p className="schedule__empty-title">
-              Не удалось выполнить запрос
-            </p>
-            <p className="schedule__empty-subtitle">
-              Проверьте соединение или попробуйте позже
-            </p>
-          </div>
+          <img
+            src={ERROR_IMAGE_SRC}
+            alt="Гусь спит"
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            className="schedule__empty-image"
+          />
+          <p className="schedule__empty-title">
+            Произошла ошибка
+          </p>
+          <p className="schedule__empty-subtitle">
+            Проверьте соединение или попробуйте позже
+          </p>
         </div>
       ) : students.length > 0 ? (
         students.map((student, i) => (

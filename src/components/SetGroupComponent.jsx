@@ -1,11 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Search, ArrowRight } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { fetchGroups } from '../api/groups';
 import { isCancelError } from '../api/client';
 import Loader from './LoaderComponent';
+import '../styles/SetGroup.css';
 
 const DEBOUNCE_MS = 250;
 const MAX_RESULTS = 5;
+
+const SPRING = { type: 'spring', stiffness: 500, damping: 38, mass: 0.6 };
+const SOFT_SPRING = { type: 'spring', stiffness: 400, damping: 34, mass: 0.6 };
+
+const CASCADE_START = 0.05;
+const CASCADE_STEP = 0.08;
+
+const cascade = (i) => ({
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  transition: { ...SPRING, delay: CASCADE_START + CASCADE_STEP * i },
+});
 
 export const SetGroupComponent = () => {
   const addGroup = useStore((s) => s.addGroup);
@@ -17,7 +32,6 @@ export const SetGroupComponent = () => {
 
   const boxRef = useRef(null);
 
-  // Автодополнение с debounce
   useEffect(() => {
     const q = query.trim();
     if (!q) {
@@ -68,18 +82,35 @@ export const SetGroupComponent = () => {
     }
   };
 
-  const showResults = query.trim().length > 0;
+  const trimmedQuery = query.trim();
+  const showResults = trimmedQuery.length > 0;
   const hasItems = showResults && !loading && options.length > 0;
-  const isEmpty = !hasItems;
+  const showManualAdd =
+    showResults && !loading && options.length === 0 && trimmedQuery.length > 0;
 
   return (
     <div className="set_group theme_light">
       <div className="set_group__inner" ref={boxRef}>
-        <h1 className="set_group__title">Выберите группу</h1>
-        <p className="set_group__subtitle">Начните вводить номер</p>
+        <motion.h1 className="set_group__title" {...cascade(0)}>
+          Выберите группу
+        </motion.h1>
 
-        <form className="set_group__form" onSubmit={handleSubmit}>
+        <motion.p className="set_group__subtitle" {...cascade(1)}>
+          Начните вводить номер — мы подскажем
+        </motion.p>
+
+        <motion.form
+          className="set_group__form"
+          onSubmit={handleSubmit}
+          {...cascade(2)}
+        >
           <div className="set_group__input-wrap">
+            <Search
+              size={18}
+              strokeWidth={2}
+              className="set_group__input-icon"
+            />
+
             <input
               className="set_group__input"
               type="text"
@@ -89,50 +120,90 @@ export const SetGroupComponent = () => {
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
             />
+
             {loading && (
               <Loader
-                size={18}
+                size={16}
                 color="var(--light-font-color)"
                 style={{
                   position: 'absolute',
-                  right: '0.9rem',
+                  right: '1rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
                 }}
               />
             )}
           </div>
-        </form>
+        </motion.form>
 
-        <div
-          className={
-            'set_group__results' +
-            (isEmpty ? ' set_group__results--centered' : '')
-          }
-        >
-          {!showResults && (
-            <p className="set_group__results__placeholder">
-              Начните вводить номер
-            </p>
-          )}
+        <motion.div className="set_group__results" {...cascade(3)}>
+          <AnimatePresence mode="wait" initial={false}>
+            {!showResults && (
+              <motion.p
+                key="hint"
+                className="set_group__placeholder"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
+              >
+                Например, 3439 или 4191
+              </motion.p>
+            )}
 
-          {showResults && !loading && options.length === 0 && (
-            <p className="set_group__results__placeholder">
-              Ничего не найдено
-            </p>
-          )}
+            {showResults && !loading && options.length === 0 && !showManualAdd && (
+              <motion.p
+                key="empty"
+                className="set_group__placeholder"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
+              >
+                Ничего не найдено
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           {hasItems &&
-            options.map((item) => (
-              <p
+            options.map((item, i) => (
+              <motion.button
                 key={item._id}
-                className="set_group__results__item"
+                type="button"
+                className="set_group__item"
                 onClick={() => handlePick(item.group)}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...SOFT_SPRING, delay: 0.03 * i }}
+                whileTap={{ scale: 0.98 }}
               >
-                {item.group}
-              </p>
+                <span className="set_group__item__num">{item.group}</span>
+                <span className="set_group__item__arrow">
+                  <ArrowRight size={16} strokeWidth={2.4} />
+                </span>
+              </motion.button>
             ))}
-        </div>
+
+          {showManualAdd && (
+            <motion.button
+              key="manual"
+              type="button"
+              className="set_group__item set_group__item--manual"
+              onClick={() => handlePick(trimmedQuery)}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={SOFT_SPRING}
+              whileTap={{ scale: 0.98 }}
+            >
+              <span className="set_group__item__num">
+                Добавить «{trimmedQuery}»
+              </span>
+              <span className="set_group__item__arrow">
+                <ArrowRight size={16} strokeWidth={2.4} />
+              </span>
+            </motion.button>
+          )}
+        </motion.div>
       </div>
     </div>
   );
