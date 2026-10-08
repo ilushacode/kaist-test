@@ -28,22 +28,8 @@ function getSemesterRange(today) {
   return { start: springStart, end: springEnd };
 }
 
-// Универсальный basename: работает и на /, и на /kaist-test/, и на любом
-// подкаталоге. Берём BASE_URL, который Vite подставляет из base в конфиге,
-// и приводим его к формату, который ждёт React Router:
-//   '/'   → '/'  (корень)
-//   './'  → '/'  (относительный base, считаем корнем)
-//   '/kaist-test/' → '/kaist-test'
-function getBasename() {
-  const base = import.meta.env.BASE_URL || '/';
-  if (base === '/' || base === './') return '/';
-  // убираем хвостовой слэш, если он есть
-  return base.endsWith('/') ? base.slice(0, -1) : base;
-}
-
 function App() {
   const resolvedTheme = useTheme();
-  const basename = useMemo(() => getBasename(), []);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -115,14 +101,13 @@ function App() {
     return <SetGroupComponent />;
   }
 
-  // 4. Основной экран с роутингом
-  // ВАЖНО: basename прокидывается в Routes, чтобы относительные пути
-  // ("/students", "/teachers") корректно работали и в корне домена,
-  // и в подкаталоге /kaist-test/.
+  // 4. Основной экран с роутингом.
+  // Используется HashRouter (см. src/main.jsx), поэтому basename не нужен:
+  // вся навигация хранится в #/... и префикс пути никогда не сбрасывается.
   return (
     <div className={`container theme_${resolvedTheme}`}>
       <AnimatePresence mode="wait" initial={false}>
-        <Routes location={location} key={location.pathname} basename={basename}>
+        <Routes location={location} key={location.pathname}>
           <Route
             path="/"
             element={

@@ -4,7 +4,7 @@ import './dev/resetApp';
 import './index.css'
 import App from './App.jsx'
 import { ModalProvider } from './providers/ModalProvider.jsx';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 import { PhoneFrame } from './components/PhoneFrameComponent.jsx';
 import { registerSW } from 'virtual:pwa-register'
 
@@ -13,11 +13,11 @@ registerSW({ immediate: true })
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <PhoneFrame>
-      <BrowserRouter>
+      <HashRouter>
         <ModalProvider>
           <App />
         </ModalProvider>
-      </BrowserRouter>
+      </HashRouter>
     </PhoneFrame>
   </StrictMode>,
 )
