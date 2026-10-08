@@ -12,6 +12,7 @@ import { useModal } from '../providers/ModalProvider';
 import LessonModal from '../modals/LessonModal';
 
 const TICK_INTERVAL_MS = 60_000;
+const LESSON_DURATION_MIN = 90;
 
 export const ScheduleLesson = ({ lesson, date }) => {
   const [, tick] = useReducer((n) => n + 1, 0);
@@ -23,7 +24,7 @@ export const ScheduleLesson = ({ lesson, date }) => {
   }, []);
 
   const start = lesson.time;
-  const end = addMinutes(lesson.time);
+  const end = addMinutes(lesson.time, LESSON_DURATION_MIN);
 
   const isActive = isLessonNow(date, start, end);
   const isFinished = isLessonPast(date, end);
@@ -43,7 +44,9 @@ export const ScheduleLesson = ({ lesson, date }) => {
   return (
     <div className="schedule_lesson" onClick={handleLessonClick}>
       <div className="schedule_lesson__times">
-        <p className="schedule_lesson__times__start">{stripLeadingZero(start)}</p>
+        <p className="schedule_lesson__times__start">
+          {stripLeadingZero(start)}
+        </p>
         <p className="schedule_lesson__times__end">{end}</p>
       </div>
 

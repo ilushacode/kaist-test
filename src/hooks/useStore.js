@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import localforage from 'localforage';
-import { todayStamp } from '../utils/date';
 
 localforage.config({ name: 'schedule-app', storeName: 'state' });
 
@@ -21,18 +20,31 @@ export const useStore = create(
   persist(
     (set, get) => ({
       // --- Группы ---
-      groups: [],           // [ "ИУ7-42Б", "ИУ7-43Б", ... ]
-      selectedGroup: null,  // string | null
+      groups: [],
+      selectedGroup: null,
 
       // --- Кэш расписания ---
-      // { [groupNumber]: { "01.09": [lesson, ...], "02.09": [...] } }
-      scheduleCache: {},
+      // Сырой объект groups из schedule.json: { [номер группы]: Lesson[] }
+      scheduleGroups: {},
+      scheduleHash: null,
+      scheduleUpdatedAt: null,
 
-      // Дата (YYYY-MM-DD) последней успешной загрузки кэша
-      lastFetchedAt: null,
+      // --- Кэш экзаменов ---
+      // Сырой объект groups из exams.json: { [номер группы]: Exam[] }
+      examsGroups: {},
+      examsHash: null,
+      examsUpdatedAt: null,
+
+      // --- Состояние загрузки ---
+      // true, пока идёт первичная загрузка и кэша ещё нет
+      scheduleLoading: false,
+      // true, если загрузка провалилась и кэша нет
+      scheduleError: false,
+      // Счётчик запросов на повторную загрузку (bump → useBootstrap перезапускается)
+      bootstrapRetry: 0,
 
       // Цветовая тема приложения
-      theme: 'auto',   // 'auto' | 'light' | 'dark'
+      theme: 'auto',
 
       // --- Действия с группами ---
       addGroup: (number) => {
@@ -47,13 +59,10 @@ export const useStore = create(
       },
 
       removeGroup: (number) => {
-        const { groups, selectedGroup, scheduleCache } = get();
+        const { groups, selectedGroup } = get();
         const newGroups = groups.filter((g) => g !== number);
-        const newCache = { ...scheduleCache };
-        delete newCache[number];
         set({
           groups: newGroups,
-          scheduleCache: newCache,
           selectedGroup:
             selectedGroup === number ? newGroups[0] ?? null : selectedGroup,
         });
@@ -61,49 +70,45 @@ export const useStore = create(
 
       selectGroup: (number) => set({ selectedGroup: number }),
 
-      /**
-       * Устанавливает единственную группу.
-       * Удаляет все предыдущие группы и кэш расписания,
-       * добавляет новую группу и делает её выбранной.
-       */
       setSingleGroup: (number) => {
         const normalized = String(number).trim();
         if (!normalized) return;
         set({
           groups: [normalized],
           selectedGroup: normalized,
-          scheduleCache: {},
-          lastFetchedAt: null,
         });
       },
 
-      // --- Кэш расписания ---
+      // --- Кэш данных ---
 
-      /**
-       * Заменяет кэш для группы целиком.
-       */
-      setGroupSchedule: (groupNumber, days) => {
+      setScheduleCache: ({ groups, contentHash, updatedAt }) => {
         set({
-          scheduleCache: {
-            ...get().scheduleCache,
-            [groupNumber]: days ?? {},
-          },
+          scheduleGroups: groups ?? {},
+          scheduleHash: contentHash ?? null,
+          scheduleUpdatedAt: updatedAt ?? null,
+          scheduleError: false,
+          scheduleLoading: false,
         });
       },
 
-      /**
-       * Сохраняет свежие данные для всех групп сразу и обновляет дату.
-       */
-      replaceCache: (data) => {
+      setExamsCache: ({ groups, contentHash, updatedAt }) => {
         set({
-          scheduleCache: data ?? {},
-          lastFetchedAt: todayStamp(),
+          examsGroups: groups ?? {},
+          examsHash: contentHash ?? null,
+          examsUpdatedAt: updatedAt ?? null,
         });
       },
 
-      clearCache: () => set({ scheduleCache: {}, lastFetchedAt: null }),
+      setScheduleLoading: (scheduleLoading) =>
+        set({ scheduleLoading: Boolean(scheduleLoading) }),
 
-      // Установка цветовой темы
+      setScheduleError: (scheduleError) =>
+        set({ scheduleError: Boolean(scheduleError) }),
+
+      /** Просит useBootstrap повторить загрузку. */
+      retryBootstrap: () => set({ bootstrapRetry: get().bootstrapRetry + 1 }),
+
+      // Тема
       setTheme: (theme) => {
         set({ theme });
         try {
@@ -111,26 +116,20 @@ export const useStore = create(
         } catch {}
       },
 
-      // --- Селекторы ---
-
-      /** Занятия на конкретную дату ("24.09") для группы. */
-      getLessonsByDate: (groupNumber, dm) => {
-        return get().scheduleCache[groupNumber]?.[dm] ?? [];
-      },
-
-      /** Нужно ли обновлять кэш — если сегодня ещё не обновляли. */
-      needsUpdate: () => get().lastFetchedAt !== todayStamp(),
-
-      /**
-       * Полный сброс: очищаем state, IndexedDB, localStorage.
-       * Использовать только для тестирования.
-       */
+      // Полный сброс
       resetAll: async () => {
         set({
           groups: [],
           selectedGroup: null,
-          scheduleCache: {},
-          lastFetchedAt: null,
+          scheduleGroups: {},
+          scheduleHash: null,
+          scheduleUpdatedAt: null,
+          examsGroups: {},
+          examsHash: null,
+          examsUpdatedAt: null,
+          scheduleLoading: false,
+          scheduleError: false,
+          bootstrapRetry: 0,
           theme: 'auto',
         });
 
@@ -148,21 +147,30 @@ export const useStore = create(
     {
       name: STORAGE_KEY,
       storage: createJSONStorage(() => indexedDBStorage),
-      version: 2,
+      version: 4,
       partialize: (s) => ({
         groups: s.groups,
         selectedGroup: s.selectedGroup,
-        scheduleCache: s.scheduleCache,
-        lastFetchedAt: s.lastFetchedAt,
+        scheduleGroups: s.scheduleGroups,
+        scheduleHash: s.scheduleHash,
+        scheduleUpdatedAt: s.scheduleUpdatedAt,
+        examsGroups: s.examsGroups,
+        examsHash: s.examsHash,
+        examsUpdatedAt: s.examsUpdatedAt,
         theme: s.theme,
       }),
       migrate: (persisted, version) => {
-        // v1 хранил группы как [{ number, title }] — приводим к строкам
         if (version < 2 && persisted?.groups) {
           persisted.groups = persisted.groups.map((g) =>
             typeof g === 'string' ? g : g.number
           );
         }
+        if (version < 3 && persisted) {
+          delete persisted.scheduleCache;
+          delete persisted.lastFetchedAt;
+        }
+        // v4: добавили scheduleLoading/Error/Retry — не персистим,
+        // поэтому специальной миграции не нужно.
         return persisted;
       },
     }

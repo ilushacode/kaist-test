@@ -1,102 +1,101 @@
 import { useEffect, useState } from 'react';
 import { useStore } from './useStore';
-import { fetchRangeSchedule } from '../api/schedule';
+import { fetchScheduleData } from '../api/schedule';
+import { fetchExamsData } from '../api/exams';
 import { isCancelError } from '../api/client';
-import { formatDateRange } from '../utils/date';
-import { BOOTSTRAP_RANGE_DAYS, BOOTSTRAP_TIMEOUT_MS } from '../config';
-
-// Стабильный ключ от списка групп — чтобы useEffect не срабатывал
-// на каждый новый массив с теми же значениями
-const groupsKey = (groups) => groups.join('|');
+import { BOOTSTRAP_TIMEOUT_MS } from '../config';
 
 /**
- * Загружает расписание на 14 дней вперёд для всех групп.
- * Возвращает true, когда данные готовы (или bootstrap завершился с ошибкой).
+ * Загружает статические данные (schedule.json, exams.json), сравнивает
+ * meta.contentHash с сохранённым и обновляет кэш только при изменениях.
  *
  * Логика ready:
- * - Холодный старт (нет кэша ни для одной группы) → ready=false, показываем лоадер.
- * - Добавление/удаление группы при наличии кэша → ready остаётся true,
- *   расписание догружается в фоне без моргания лоадером.
+ * - Кэш расписания есть → ready сразу true, обновление идёт в фоне.
+ * - Кэша нет → ready false, пока не завершится загрузка
+ *   (или не упадёт — тогда показываем экран ошибки).
  *
- * @param {Date} today — сегодняшняя дата (стабильная ссылка)
+ * Повторный запуск: useStore.retryBootstrap() увеличивает bootstrapRetry,
+ * что перезапускает эффект.
  */
-export default function useBootstrap(today) {
-  const groups = useStore((s) => s.groups);
+export default function useBootstrap() {
   const [ready, setReady] = useState(false);
-
-  const key = groupsKey(groups);
-  const todayTs = today.getTime();
+  const bootstrapRetry = useStore((s) => s.bootstrapRetry);
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
 
     (async () => {
-      const {
-        groups: currentGroups,
-        needsUpdate,
-        replaceCache,
-        setGroupSchedule,
-        scheduleCache,
-      } = useStore.getState();
+      const store = useStore.getState();
+      const { scheduleGroups, scheduleHash, examsHash } = store;
 
-      // Групп нет — сразу готовы (App.jsx покажет SetGroupComponent)
-      if (currentGroups.length === 0) {
-        if (!cancelled) setReady(true);
-        return;
+      const hasScheduleCache = Object.keys(scheduleGroups).length > 0;
+      if (hasScheduleCache) {
+        setReady(true);
+      } else {
+        store.setScheduleLoading(true);
+        store.setScheduleError(false);
       }
 
-      // «Холодный старт» — ни для одной группы нет кэша.
-      // Только в этом случае показываем лоадер.
-      // В остальных сценариях (добавление/удаление группы) ready не трогаем.
-      const hasAnyCache = currentGroups.some((g) => scheduleCache[g]);
-      const isColdStart = !ready && !hasAnyCache;
+      const options = {
+        signal: controller.signal,
+        timeout: BOOTSTRAP_TIMEOUT_MS,
+      };
 
-      if (isColdStart && !cancelled) {
-        setReady(false);
-      }
+      const [scheduleResult, examsResult] = await Promise.allSettled([
+        fetchScheduleData(options),
+        fetchExamsData(options),
+      ]);
 
-      const dateParam = formatDateRange(today, BOOTSTRAP_RANGE_DAYS);
-      const shouldReplaceAll = needsUpdate();
+      if (cancelled) return;
 
-      try {
-        const results = await Promise.all(
-          currentGroups.map(async (number) => {
-            const cached = scheduleCache[number];
-            if (cached && !shouldReplaceAll) {
-              return [number, cached];
-            }
+      const s = useStore.getState();
 
-            const days = await fetchRangeSchedule(number, dateParam, {
-              signal: controller.signal,
-              timeout: BOOTSTRAP_TIMEOUT_MS,
-            });
-            return [number, days];
-          })
-        );
+      if (scheduleResult.status === 'fulfilled') {
+        const { groups, contentHash, updatedAt } = scheduleResult.value;
+        const hasFreshGroups = Object.keys(groups).length > 0;
+        const isOutdated =
+          !contentHash || contentHash !== scheduleHash || !hasScheduleCache;
 
-        if (cancelled) return;
-
-        if (shouldReplaceAll) {
-          replaceCache(Object.fromEntries(results));
+        if (hasFreshGroups && isOutdated) {
+          s.setScheduleCache({ groups, contentHash, updatedAt });
         } else {
-          for (const [number, days] of results) {
-            setGroupSchedule(number, days);
-          }
+          s.setScheduleError(false);
+          s.setScheduleLoading(false);
         }
-      } catch (err) {
-        if (isCancelError(err)) return;
-        console.warn('Bootstrap: используем старый кэш.', err);
-      } finally {
-        if (!cancelled) setReady(true);
+      } else {
+        const reason = scheduleResult.reason;
+        if (!isCancelError(reason)) {
+          console.warn('Bootstrap: расписание недоступно.', reason);
+        }
+        if (!hasScheduleCache) {
+          s.setScheduleError(true);
+          s.setScheduleLoading(false);
+        }
       }
+
+      if (examsResult.status === 'fulfilled') {
+        const { groups, contentHash, updatedAt } = examsResult.value;
+        const hasFreshGroups = Object.keys(groups).length > 0;
+
+        if (hasFreshGroups && (!contentHash || contentHash !== examsHash)) {
+          s.setExamsCache({ groups, contentHash, updatedAt });
+        }
+      } else {
+        const reason = examsResult.reason;
+        if (!isCancelError(reason)) {
+          console.warn('Bootstrap: экзамены недоступны.', reason);
+        }
+      }
+
+      setReady(true);
     })();
 
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [key, todayTs]);
+  }, [bootstrapRetry]);
 
   return ready;
 }

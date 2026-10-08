@@ -4,15 +4,13 @@ import { useSwipeable } from 'react-swipeable';
 import { ScheduleLesson } from './ScheduleLessonComponent';
 import { useStore } from '../hooks/useStore';
 import { usePrefetchImage } from '../hooks/usePrefetchImage';
-import { fetchDaySchedule } from '../api/schedule';
-import { isCancelError } from '../api/client';
+import { getLessonsForDate } from '../utils/schedule';
 import { formatDM, shiftDate } from '../utils/date';
 import Loader from './LoaderComponent';
 import '../styles/Schedule.css';
 
 const EMPTY_IMAGE_SRC = `${import.meta.env.BASE_URL}images/goose_sleep.png`;
 
-// Подписи под «Сегодня нет пар» — меняются при каждой смене дня
 const EMPTY_SUBTITLES = [
   'Гусь тоже отдыхает',
   'Можно спать дальше',
@@ -73,21 +71,25 @@ const transition = {
 
 export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
   const selectedGroup = useStore((s) => s.selectedGroup);
-  const setGroupSchedule = useStore((s) => s.setGroupSchedule);
+  const scheduleGroups = useStore((s) => s.scheduleGroups);
+  const scheduleError = useStore((s) => s.scheduleError);
+  const scheduleLoading = useStore((s) => s.scheduleLoading);
+  const retryBootstrap = useStore((s) => s.retryBootstrap);
 
   const [direction, setDirection] = useState(0);
   const [renderedDate, setRenderedDate] = useState(selectedDate);
-  const [lessons, setLessons] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [emptySubtitleIndex, setEmptySubtitleIndex] = useState(0);
+
+  const lessons = useMemo(
+    () => getLessonsForDate(scheduleGroups[selectedGroup], renderedDate),
+    [scheduleGroups, selectedGroup, renderedDate]
+  );
 
   const prevDateRef = useRef(selectedDate);
   const swipeBlockRef = useRef(false);
 
   usePrefetchImage(EMPTY_IMAGE_SRC);
 
-  // Следим за сменой даты — определяем направление и обновляем renderedDate
   useEffect(() => {
     const prev = new Date(prevDateRef.current);
     prev.setHours(0, 0, 0, 0);
@@ -101,7 +103,6 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
     }
   }, [selectedDate]);
 
-  // Меняем подпись на новую при каждой смене дня
   useEffect(() => {
     setEmptySubtitleIndex((prev) => {
       if (EMPTY_SUBTITLES.length <= 1) return prev;
@@ -113,58 +114,8 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
     });
   }, [renderedDate]);
 
-  // Загрузка занятий для отрисованной даты
-  useEffect(() => {
-    if (!selectedGroup) return;
-
-    const key = formatDM(renderedDate);
-    const cachedDays = useStore.getState().scheduleCache[selectedGroup];
-    const cached = cachedDays?.[key];
-
-    if (cached) {
-      setLessons(cached);
-      setError(false);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    setLoading(true);
-    setError(false);
-
-    fetchDaySchedule(selectedGroup, key, { signal: controller.signal })
-      .then((items) => {
-        if (cancelled) return;
-        setLessons(items);
-
-        const currentCache =
-          useStore.getState().scheduleCache[selectedGroup] ?? {};
-        setGroupSchedule(selectedGroup, {
-          ...currentCache,
-          [key]: items,
-        });
-      })
-      .catch((err) => {
-        if (cancelled || isCancelError(err)) return;
-        console.error(err);
-        setLessons([]);
-        setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [selectedGroup, renderedDate, setGroupSchedule]);
-
   const animationKey = formatDM(renderedDate);
 
-  // --- Свайп через react-swipeable ---
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => {
       if (!onDateChange) return;
@@ -197,7 +148,8 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
   };
 
   const content = useMemo(() => {
-    if (loading) {
+    // Холодный старт: данных ещё нет, идёт первичная загрузка
+    if (scheduleLoading && lessons.length === 0 && !scheduleError) {
       return (
         <div className="schedule schedule--centered">
           <Loader color={'#a8bcdd'} stroke={3} />
@@ -205,7 +157,7 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
       );
     }
 
-    if (error && lessons.length === 0) {
+    if (scheduleError && lessons.length === 0) {
       return (
         <div className="schedule">
           <div className="schedule--centered">
@@ -223,6 +175,13 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
             <p className="schedule__empty-subtitle">
               Проверьте соединение и попробуйте позже
             </p>
+            <button
+              type="button"
+              className="schedule__retry"
+              onClick={retryBootstrap}
+            >
+              Повторить
+            </button>
           </div>
         </div>
       );
@@ -258,7 +217,14 @@ export const ScheduleComponent = ({ selectedDate, onDateChange }) => {
         ))}
       </div>
     );
-  }, [loading, error, lessons, renderedDate, emptySubtitleIndex]);
+  }, [
+    scheduleLoading,
+    scheduleError,
+    lessons,
+    renderedDate,
+    emptySubtitleIndex,
+    retryBootstrap,
+  ]);
 
   return (
     <div

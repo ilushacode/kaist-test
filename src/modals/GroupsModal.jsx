@@ -1,66 +1,34 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Check, X } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
 import { useModal } from '../providers/ModalProvider';
-import Loader from '../components/LoaderComponent';
-import { fetchGroups } from '../api/groups';
-import { isCancelError } from '../api/client';
+import { searchGroups } from '../utils/groups';
 import '../styles/GroupsModal.css';
 
-const DEBOUNCE_MS = 250;
+const MAX_RESULTS = 40;
 
 export default function GroupsModal({ onSelect }) {
   const { closeModal } = useModal();
 
   const groups = useStore((s) => s.groups);
   const selectedGroup = useStore((s) => s.selectedGroup);
+  const scheduleGroups = useStore((s) => s.scheduleGroups);
   const addGroup = useStore((s) => s.addGroup);
   const selectGroup = useStore((s) => s.selectGroup);
   const removeGroup = useStore((s) => s.removeGroup);
 
   const [query, setQuery] = useState('');
-  const [options, setOptions] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   // Быстрая проверка «уже добавлена»
   const groupsSet = useMemo(() => new Set(groups), [groups]);
   const canRemove = groups.length > 1;
 
-  // Автодополнение с debounce
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) {
-      setOptions([]);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    setLoading(true);
-
-    const timer = setTimeout(async () => {
-      try {
-        const data = await fetchGroups(q, { signal: controller.signal });
-        if (!cancelled) setOptions(data);
-      } catch (err) {
-        if (!isCancelError(err)) {
-          console.error('groups autocomplete:', err);
-          if (!cancelled) setOptions([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }, DEBOUNCE_MS);
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [query]);
+  // Подсказки — по ключам групп из кэша расписания, без запросов к серверу
+  const options = useMemo(
+    () => searchGroups(scheduleGroups, query, MAX_RESULTS),
+    [scheduleGroups, query]
+  );
 
   // Добавление новой группы
   const handlePick = (group) => {
@@ -69,7 +37,6 @@ export default function GroupsModal({ onSelect }) {
     selectGroup(group);
     onSelect?.(group);
     setQuery('');
-    setOptions([]);
     closeModal();
   };
 
@@ -85,19 +52,18 @@ export default function GroupsModal({ onSelect }) {
     const trimmed = query.trim();
     if (!trimmed) return;
 
-    // Если есть первая опция из API и она не добавлена — добавляем
-    if (options.length > 0 && !groupsSet.has(options[0].group)) {
-      handlePick(options[0].group);
+    // Если есть первая опция из списка и она не добавлена — добавляем
+    if (options.length > 0 && !groupsSet.has(options[0])) {
+      handlePick(options[0]);
     } else if (!groupsSet.has(trimmed)) {
       handlePick(trimmed);
     }
   };
 
   const showResults = query.trim().length > 0;
-  const hasItems = showResults && !loading && options.length > 0;
+  const hasItems = showResults && options.length > 0;
   const showManualAdd =
     showResults &&
-    !loading &&
     options.length === 0 &&
     query.trim() &&
     !groupsSet.has(query.trim());
@@ -130,18 +96,6 @@ export default function GroupsModal({ onSelect }) {
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
           />
-          {loading && (
-            <Loader
-              size={14}
-              color="var(--light-font-color)"
-              style={{
-                position: 'absolute',
-                right: '0.9rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-              }}
-            />
-          )}
         </div>
       </form>
 
@@ -165,7 +119,7 @@ export default function GroupsModal({ onSelect }) {
             </motion.p>
           )}
 
-          {showResults && !loading && options.length === 0 && !showManualAdd && (
+          {showResults && options.length === 0 && !showManualAdd && (
             <motion.p
               key="placeholder-empty"
               className="groups_modal__placeholder"
@@ -181,12 +135,12 @@ export default function GroupsModal({ onSelect }) {
 
         {hasItems &&
           options.map((item) => {
-            const isAdded = groupsSet.has(item.group);
-            const isActive = item.group === selectedGroup;
+            const isAdded = groupsSet.has(item);
+            const isActive = item === selectedGroup;
 
             return (
               <motion.button
-                key={item._id}
+                key={item}
                 type="button"
                 className={[
                   'groups_modal__item',
@@ -198,11 +152,11 @@ export default function GroupsModal({ onSelect }) {
                 onClick={() => {
                   if (isAdded) {
                     // Тап по уже добавленной = переключиться на неё
-                    selectGroup(item.group);
-                    onSelect?.(item.group);
+                    selectGroup(item);
+                    onSelect?.(item);
                     closeModal();
                   } else {
-                    handlePick(item.group);
+                    handlePick(item);
                   }
                 }}
                 initial={{ opacity: 0 }}
@@ -210,15 +164,15 @@ export default function GroupsModal({ onSelect }) {
                 transition={{ duration: 0.12 }}
                 whileTap={{ scale: 0.985 }}
               >
-                <span className="groups_modal__item__num">{item.group}</span>
+                <span className="groups_modal__item__num">{item}</span>
 
                 {/* Если группа уже в избранном — крестик. Иначе — плюс. */}
                 {isAdded && canRemove ? (
                   <span
                     className="groups_modal__item__action groups_modal__item__action--remove"
-                    onClick={(e) => handleRemove(e, item.group)}
+                    onClick={(e) => handleRemove(e, item)}
                     role="button"
-                    aria-label={`Удалить группу ${item.group}`}
+                    aria-label={`Удалить группу ${item}`}
                   >
                     <X size={15} strokeWidth={2.4} />
                   </span>

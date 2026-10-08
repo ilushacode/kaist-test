@@ -1,13 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ArrowRight } from 'lucide-react';
 import { useStore } from '../hooks/useStore';
-import { fetchGroups } from '../api/groups';
-import { isCancelError } from '../api/client';
-import Loader from './LoaderComponent';
+import { searchGroups } from '../utils/groups';
 import '../styles/SetGroup.css';
 
-const DEBOUNCE_MS = 250;
 const MAX_RESULTS = 5;
 
 const SPRING = { type: 'spring', stiffness: 500, damping: 38, mass: 0.6 };
@@ -25,58 +22,28 @@ const cascade = (i) => ({
 export const SetGroupComponent = () => {
   const addGroup = useStore((s) => s.addGroup);
   const selectGroup = useStore((s) => s.selectGroup);
+  const scheduleGroups = useStore((s) => s.scheduleGroups);
 
   const [query, setQuery] = useState('');
-  const [options, setOptions] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   const boxRef = useRef(null);
 
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) {
-      setOptions([]);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    setLoading(true);
-
-    const timer = setTimeout(async () => {
-      try {
-        const data = await fetchGroups(q, { signal: controller.signal });
-        if (!cancelled) setOptions(data.slice(0, MAX_RESULTS));
-      } catch (err) {
-        if (!isCancelError(err)) {
-          console.error('groups autocomplete:', err);
-          if (!cancelled) setOptions([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }, DEBOUNCE_MS);
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [query]);
+  // Подсказки — по ключам групп из кэша расписания, без запросов к серверу
+  const options = useMemo(
+    () => searchGroups(scheduleGroups, query, MAX_RESULTS),
+    [scheduleGroups, query]
+  );
 
   const handlePick = (groupNumber) => {
     addGroup(groupNumber);
     selectGroup(groupNumber);
     setQuery('');
-    setOptions([]);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (options.length > 0) {
-      handlePick(options[0].group);
+      handlePick(options[0]);
     } else if (query.trim()) {
       handlePick(query.trim());
     }
@@ -84,9 +51,9 @@ export const SetGroupComponent = () => {
 
   const trimmedQuery = query.trim();
   const showResults = trimmedQuery.length > 0;
-  const hasItems = showResults && !loading && options.length > 0;
+  const hasItems = showResults && options.length > 0;
   const showManualAdd =
-    showResults && !loading && options.length === 0 && trimmedQuery.length > 0;
+    showResults && options.length === 0 && trimmedQuery.length > 0;
 
   return (
     <div className="set_group theme_light">
@@ -120,19 +87,6 @@ export const SetGroupComponent = () => {
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
             />
-
-            {loading && (
-              <Loader
-                size={16}
-                color="var(--light-font-color)"
-                style={{
-                  position: 'absolute',
-                  right: '1rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                }}
-              />
-            )}
           </div>
         </motion.form>
 
@@ -151,7 +105,7 @@ export const SetGroupComponent = () => {
               </motion.p>
             )}
 
-            {showResults && !loading && options.length === 0 && !showManualAdd && (
+            {showResults && options.length === 0 && !showManualAdd && (
               <motion.p
                 key="empty"
                 className="set_group__placeholder"
@@ -168,16 +122,16 @@ export const SetGroupComponent = () => {
           {hasItems &&
             options.map((item, i) => (
               <motion.button
-                key={item._id}
+                key={item}
                 type="button"
                 className="set_group__item"
-                onClick={() => handlePick(item.group)}
+                onClick={() => handlePick(item)}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...SOFT_SPRING, delay: 0.03 * i }}
                 whileTap={{ scale: 0.98 }}
               >
-                <span className="set_group__item__num">{item.group}</span>
+                <span className="set_group__item__num">{item}</span>
                 <span className="set_group__item__arrow">
                   <ArrowRight size={16} strokeWidth={2.4} />
                 </span>

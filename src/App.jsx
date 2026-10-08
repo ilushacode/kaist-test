@@ -12,6 +12,7 @@ import { MIN_LOADER_MS } from './config';
 import { SchedulePage } from './pages/SchedulePage';
 import { StudentsPage } from './pages/StudentsPage';
 import { TeachersPage } from './pages/TeachersPage';
+import { ExamsPage } from './pages/ExamsPage';
 import { InstallBanner } from './components/InstallBannerComponent';
 import { compareDay, getMondayOfWeek, shiftDate } from './utils/date';
 import { useTheme } from './hooks/useTheme';
@@ -44,7 +45,7 @@ function App() {
 
   const groups = useStore((s) => s.groups);
   const selectedGroup = useStore((s) => s.selectedGroup);
-  const ready = useBootstrap(today);
+  const ready = useBootstrap();
 
   const prevGroupRef = useRef(selectedGroup);
   useEffect(() => {
@@ -82,12 +83,10 @@ function App() {
     setSelectedDate(shiftDate(currentMonday, 7));
   };
 
-  // 1. Bootstrap ещё не готов или не прошла минимальная задержка
   if (!ready || !minTimePassed) {
     return <LoaderScreen />;
   }
 
-  // 2. Групп нет и приветствие не пройдено — показываем hello
   if (groups.length === 0 && !helloPassed) {
     return (
       <div className="container theme_light">
@@ -96,14 +95,10 @@ function App() {
     );
   }
 
-  // 3. Групп нет, но приветствие уже пройдено — выбор группы
   if (groups.length === 0) {
     return <SetGroupComponent />;
   }
 
-  // 4. Основной экран с роутингом.
-  // Используется HashRouter (см. src/main.jsx), поэтому basename не нужен:
-  // вся навигация хранится в #/... и префикс пути никогда не сбрасывается.
   return (
     <div className={`container theme_${resolvedTheme}`}>
       <AnimatePresence mode="wait" initial={false}>
@@ -124,6 +119,7 @@ function App() {
           />
           <Route path="/students" element={<StudentsPage />} />
           <Route path="/teachers" element={<TeachersPage />} />
+          <Route path="/exams" element={<ExamsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>

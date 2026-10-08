@@ -93,7 +93,7 @@ export default function MenuModal({ closeModal }) {
     [
       { icon: UserGroup, color: '#db960c', title: 'Одногруппники', callback: () => navigate('/students') },
       { icon: GraduationCap, color: '#ac2eeb', title: 'Преподаватели', callback: () => navigate('/teachers') },
-      { icon: BookOpenText, color: '#0cdb39', title: 'Экзамены', right: <SoonBadge /> },
+      { icon: BookOpenText, color: '#0cdb39', title: 'Экзамены', callback: () => navigate('/exams') },
     ],
   ];
 

@@ -1,7 +1,6 @@
-/* src/styles/InstallBanner.css */
+/* InstallBanner */
 
 .install-banner {
-  /* Позиционирование: фиксируем по центру внизу без transform */
   position: fixed;
   left: 1rem;
   right: 1rem;
@@ -10,20 +9,19 @@
   max-width: 480px;
   z-index: 999;
 
-  background: rgba(255, 255, 255, 0.96);
+  background: color-mix(in srgb, var(--surface-color) 96%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 
-  border: 1px solid rgba(48, 111, 206, 0.12);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 15%, transparent);
   border-radius: 16px;
 
   box-shadow:
-    0 12px 32px -12px rgba(48, 111, 206, 0.28),
-    0 2px 8px -4px rgba(15, 30, 61, 0.08);
+    0 12px 32px -12px color-mix(in srgb, var(--primary-color) 30%, transparent),
+    0 2px 8px -4px rgba(0, 0, 0, 0.12);
 
   box-sizing: border-box;
   overflow: hidden;
-  /* никакого transform — им управляет framer-motion */
 }
 
 /* ---------- Строка ---------- */
@@ -43,7 +41,7 @@
 }
 
 .install-banner__row--clickable:active {
-  background: rgba(48, 111, 206, 0.04);
+  background: color-mix(in srgb, var(--primary-color) 6%, transparent);
 }
 
 /* ---------- Иконка ---------- */
@@ -56,9 +54,13 @@
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, #306fce 0%, #4a86e8 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    color-mix(in srgb, var(--primary-color) 70%, #ffffff) 100%
+  );
   border-radius: 10px;
-  box-shadow: 0 6px 14px -6px rgba(48, 111, 206, 0.6);
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--primary-color) 60%, transparent);
 }
 
 /* ---------- Текст ---------- */
@@ -75,7 +77,7 @@
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #0f1e3d;
+  color: var(--font-color);
   line-height: 1.25;
   word-break: break-word;
 }
@@ -83,7 +85,7 @@
 .install-banner__subtitle {
   margin: 0;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--light-font-color);
   line-height: 1.35;
   word-break: break-word;
 }
@@ -97,11 +99,15 @@
   font-weight: 600;
   font-family: inherit;
   color: #fff;
-  background: linear-gradient(135deg, #306fce 0%, #4a86e8 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    color-mix(in srgb, var(--primary-color) 70%, #ffffff) 100%
+  );
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 6px 14px -6px rgba(48, 111, 206, 0.55);
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--primary-color) 55%, transparent);
   transition: transform 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
@@ -119,7 +125,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  color: #6b7280;
+  color: var(--light-font-color);
 }
 
 /* ---------- Кнопка "Закрыть" ---------- */
@@ -131,7 +137,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--light-font-color);
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -141,14 +147,14 @@
 }
 
 .install-banner__close:active {
-  background: rgba(15, 30, 61, 0.06);
+  background: color-mix(in srgb, var(--light-font-color) 18%, transparent);
 }
 
 /* ---------- Раскрытый гайд ---------- */
 
 .install-banner__guide {
   padding: 0.5rem 1rem 0.9rem;
-  border-top: 1px solid rgba(48, 111, 206, 0.08);
+  border-top: 1px solid color-mix(in srgb, var(--primary-color) 12%, transparent);
   overflow: hidden;
 }
 
@@ -156,7 +162,7 @@
   margin: 0.4rem 0 0.5rem;
   font-size: 0.72rem;
   font-weight: 600;
-  color: #306fce;
+  color: var(--primary-color);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -176,7 +182,7 @@
   gap: 0.6rem;
   font-size: 0.82rem;
   line-height: 1.4;
-  color: #2a3350;
+  color: var(--font-color);
 }
 
 .install-banner__guide__num {
@@ -189,7 +195,11 @@
   font-size: 0.68rem;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, #306fce 0%, #4a86e8 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    color-mix(in srgb, var(--primary-color) 70%, #ffffff) 100%
+  );
   border-radius: 50%;
   margin-top: 1px;
 }
@@ -198,7 +208,7 @@
   margin: 0.25rem 0 0;
   font-size: 0.82rem;
   line-height: 1.4;
-  color: #6b7280;
+  color: var(--light-font-color);
 }
 
 /* ---------- Узкие экраны ---------- */

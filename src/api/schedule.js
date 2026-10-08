@@ -1,17 +1,12 @@
-import { apiClient } from './client';
+import { SCHEDULE_URL } from '../config';
+import { fetchJson } from './client';
 
-export const fetchDaySchedule = async (group, date, options = {}) => {
-  const { data } = await apiClient.get('/schedule/day', {
-    params: { group, date },
-    ...options,
-  });
-  return data?.items ?? [];
-};
-
-export const fetchRangeSchedule = async (group, dates, options = {}) => {
-  const { data } = await apiClient.get('/schedule/range', {
-    params: { group, dates },
-    ...options,
-  });
-  return data?.days ?? {};
+/** Загружает schedule.json: сырые группы + версия контента. */
+export const fetchScheduleData = async (options = {}) => {
+  const data = await fetchJson(SCHEDULE_URL, options);
+  return {
+    groups: data?.groups ?? {},
+    contentHash: data?.meta?.contentHash ?? null,
+    updatedAt: data?.meta?.updatedAt ?? null,
+  };
 };

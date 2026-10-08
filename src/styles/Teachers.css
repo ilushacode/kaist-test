@@ -18,6 +18,7 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
+
 .teachers::-webkit-scrollbar {
   display: none;
 }
@@ -28,7 +29,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 1.5rem;
+  padding-bottom: 15%;
+  gap: 0.75rem;
+  text-align: center;
 }
 
 .teachers__empty {
@@ -45,10 +49,9 @@
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  padding: 1.35rem 0;
+  padding: 1.15rem 0;
 }
 
-/* Тонкий разделитель между строками */
 .teachers__item + .teachers__item::before {
   content: '';
   position: absolute;
@@ -64,7 +67,6 @@
   );
 }
 
-/* Аватар — outline-стиль, стеклянный */
 .teachers__avatar {
   flex-shrink: 0;
   width: 2.6rem;
@@ -80,8 +82,7 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
   background: color-mix(in srgb, var(--primary-color) 6%, transparent);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--primary-color) 25%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-color) 25%, transparent);
 }
 
 .teachers__body {
@@ -104,7 +105,6 @@
   word-break: break-word;
 }
 
-/* Кафедра — мелкая uppercase-метка с тонкой линией слева */
 .teachers__department {
   font-size: 0.68rem;
   font-weight: 500;
@@ -128,7 +128,6 @@
   opacity: 0.7;
 }
 
-/* Предметы — текст, но чуть выделенный */
 .teachers__subjects {
   font-size: 0.85rem;
   font-weight: 400;

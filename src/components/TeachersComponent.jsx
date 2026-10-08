@@ -1,14 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { fetchTeachers } from '../api/teachers';
 import { useStore } from '../hooks/useStore';
-import { isCancelError } from '../api/client';
-import Loader from './LoaderComponent';
-import { usePrefetchImage } from '../hooks/usePrefetchImage';
+import { collectTeachers } from '../utils/teachers';
 import { capitalizeName } from '../utils/string';
+import Loader from './LoaderComponent';
 import '../styles/Teachers.css';
 
-const EMPTY_IMAGE_SRC = `${import.meta.env.BASE_URL}images/goose_sleep.png`;
 const ERROR_IMAGE_SRC = `${import.meta.env.BASE_URL}images/goose_error.png`;
 
 const SPRING = { type: 'spring', stiffness: 500, damping: 38, mass: 0.6 };
@@ -29,46 +26,20 @@ function getInitials(name) {
 }
 
 export const TeachersComponent = () => {
-  const [teachers, setTeachers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
   const selectedGroup = useStore((s) => s.selectedGroup);
-  usePrefetchImage(EMPTY_IMAGE_SRC);
-  usePrefetchImage(ERROR_IMAGE_SRC);
+  const scheduleGroups = useStore((s) => s.scheduleGroups);
+  const examsGroups = useStore((s) => s.examsGroups);
+  const scheduleError = useStore((s) => s.scheduleError);
+  const scheduleLoading = useStore((s) => s.scheduleLoading);
+  const retryBootstrap = useStore((s) => s.retryBootstrap);
 
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
+  const teachers = useMemo(
+    () => collectTeachers(selectedGroup, scheduleGroups, examsGroups),
+    [selectedGroup, scheduleGroups, examsGroups]
+  );
 
-    async function fetchData() {
-      setLoading(true);
-      setError(false);
-      try {
-        const result = await fetchTeachers(selectedGroup, {
-          signal: controller.signal,
-        });
-        if (cancelled) return;
-        setTeachers(result?.items ?? []);
-      } catch (err) {
-        if (cancelled || isCancelError(err)) return;
-        console.error('teachers:', err);
-        setTeachers([]);
-        setError(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    fetchData();
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [selectedGroup]);
-
-  if (loading) {
+  // Данные ещё грузятся и нет ни одного преподавателя — показываем лоадер
+  if (scheduleLoading && teachers.length === 0) {
     return (
       <div className="teachers__centred">
         <Loader color={'#a8bcdd'} stroke={3} />
@@ -76,7 +47,7 @@ export const TeachersComponent = () => {
     );
   }
 
-  if (error) {
+  if (scheduleError && teachers.length === 0) {
     return (
       <div className="teachers__centred">
         <img
@@ -91,6 +62,13 @@ export const TeachersComponent = () => {
         <p className="schedule__empty-subtitle">
           Проверьте соединение или попробуйте позже
         </p>
+        <button
+          type="button"
+          className="teachers__retry"
+          onClick={retryBootstrap}
+        >
+          Повторить
+        </button>
       </div>
     );
   }

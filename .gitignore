@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Agent
+.clinerules
+.clineignore
+AGENTS.md

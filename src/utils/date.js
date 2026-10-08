@@ -48,14 +48,6 @@ export const formatDayMonth = (date) => {
   return `${d.getDate()} ${MONTHS_GENITIVE[d.getMonth()]}`;
 };
 
-/** Строит диапазон "DD.MM-DD.MM" включая start, длиной days */
-export const formatDateRange = (startDate, days) => {
-  const start = startOfDay(startDate);
-  const end = new Date(start);
-  end.setDate(end.getDate() + days - 1);
-  return `${formatDM(start)}-${formatDM(end)}`;
-};
-
 /** Сдвигает дату на days дней, сбрасывает время */
 export const shiftDate = (date, days) => {
   const d = new Date(date);
