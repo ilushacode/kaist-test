@@ -6,6 +6,9 @@ import App from './App.jsx'
 import { ModalProvider } from './providers/ModalProvider.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import { PhoneFrame } from './components/PhoneFrameComponent.jsx';
+import { registerSW } from 'virtual:pwa-register'
+
+registerSW({ immediate: true })
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
