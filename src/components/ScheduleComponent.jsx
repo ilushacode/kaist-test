@@ -10,7 +10,7 @@ import { formatDM, shiftDate } from '../utils/date';
 import Loader from './LoaderComponent';
 import '../styles/Schedule.css';
 
-const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
+const EMPTY_IMAGE_SRC = `${import.meta.env.BASE_URL}images/goose_sleep.png`;
 
 // Подписи под «Сегодня нет пар» — меняются при каждой смене дня
 const EMPTY_SUBTITLES = [

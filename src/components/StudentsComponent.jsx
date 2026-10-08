@@ -7,8 +7,8 @@ import Loader from "./LoaderComponent";
 import { usePrefetchImage } from "../hooks/usePrefetchImage";
 import '../styles/Students.css'
 
-const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
-const ERROR_IMAGE_SRC = '/images/goose_error.png';
+const EMPTY_IMAGE_SRC = `${import.meta.env.BASE_URL}images/goose_sleep.png`;
+const ERROR_IMAGE_SRC = `${import.meta.env.BASE_URL}/images/goose_error.png`;
 
 export const StudentsComponent = () => {
   const [students, setStudents] = useState([]);

@@ -3,7 +3,7 @@ import { Rocket } from 'lucide-react';
 import { usePrefetchImage } from '../hooks/usePrefetchImage';
 import '../styles/Hello.css';
 
-const HELLO_IMAGE_SRC = '/images/goose_hello.png';
+const HELLO_IMAGE_SRC = `${import.meta.env.BASE_URL}images/goose_hello.png`;
 
 const SPRING = { type: 'spring', stiffness: 500, damping: 38, mass: 0.6 };
 

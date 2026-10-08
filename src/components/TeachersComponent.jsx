@@ -8,8 +8,8 @@ import { usePrefetchImage } from '../hooks/usePrefetchImage';
 import { capitalizeName } from '../utils/string';
 import '../styles/Teachers.css';
 
-const EMPTY_IMAGE_SRC = '/images/goose_sleep.png';
-const ERROR_IMAGE_SRC = '/images/goose_error.png';
+const EMPTY_IMAGE_SRC = `${import.meta.env.BASE_URL}images/goose_sleep.png`;
+const ERROR_IMAGE_SRC = `${import.meta.env.BASE_URL}images/goose_error.png`;
 
 const SPRING = { type: 'spring', stiffness: 500, damping: 38, mass: 0.6 };
 const CASCADE_STEP = 0.04;
