@@ -2,17 +2,14 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// 👇 Имя репозитория на GitHub (без слэшей).
-// Должно точно совпадать с названием репо: https://github.com/ilushacode/<repoName>
-const repoName = 'kaist'
-
-// https://vite.dev/config/
 export default defineConfig({
-  base: `/${repoName}/`,
+  base: './', // 👈 универсальный относительный путь
+
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: null, // регистрируем SW вручную через virtual:pwa-register
 
       includeAssets: [
         'favicon.ico',
@@ -28,9 +25,8 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '.',
-        scope: '.',
         lang: 'ru',
+        // start_url и scope не задаём — VitePWA подставит base
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
@@ -48,16 +44,12 @@ export default defineConfig({
           '**/*.{js,css,html,ico,png,jpg,jpeg,svg,webp,gif,woff,woff2,ttf}',
         ],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-
-        navigateFallback: `/${repoName}/index.html`,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
+        // navigateFallback не задаём — VitePWA подставит
 
-        // Кэшируем ТОЛЬКО статику.
-        // Данные (расписание, группы) кэширует Zustand → IndexedDB.
         runtimeCaching: [
-          // --- 1. Картинки ---
           {
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
@@ -65,14 +57,12 @@ export default defineConfig({
               cacheName: 'images',
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 60, // 60 дней
+                maxAgeSeconds: 60 * 60 * 24 * 60,
                 purgeOnQuotaError: true,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-
-          // --- 2. Шрифты ---
           {
             urlPattern: ({ request }) => request.destination === 'font',
             handler: 'CacheFirst',
@@ -80,14 +70,11 @@ export default defineConfig({
               cacheName: 'fonts',
               expiration: {
                 maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 год
+                maxAgeSeconds: 60 * 60 * 24 * 365,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-
-          // --- 3. Стили и скрипты, подгружаемые динамически ---
-          // (Vite уже прекэширует их, но если появятся внешние — подхватит)
           {
             urlPattern: ({ request }) =>
               request.destination === 'style' ||
