@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   # ─────────────────────────────────────────────────────────
-  # Фаза 1: параллельный обход 909 групп в 20 шардов
+  # Фаза 1: параллельный обход групп в 20 шардов
   # ─────────────────────────────────────────────────────────
   scrape:
     runs-on: ubuntu-latest
@@ -28,10 +28,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -45,19 +45,19 @@ jobs:
         env:
           SHARD_INDEX: ${{ matrix.shard }}
           TOTAL_SHARDS: 20
-          OUTPUT_DIR: ${{ github.workspace }}
+          WORK_DIR: ${{ github.workspace }}/work
         run: python parse_schedule.py
 
       - name: Upload shard result
         uses: actions/upload-artifact@v4
         with:
           name: schedule-part-${{ matrix.shard }}
-          path: schedule-part-${{ matrix.shard }}.json
+          path: work/schedule-part-${{ matrix.shard }}.json
           retention-days: 1
           if-no-files-found: error
 
   # ─────────────────────────────────────────────────────────
-  # Фаза 2: сборка, сравнение с уже опубликованным, пуш
+  # Фаза 2: сборка, сравнение, force-push в data
   # ─────────────────────────────────────────────────────────
   merge-and-push:
     needs: scrape
@@ -66,29 +66,32 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout (source)
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Download all shard artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: schedule-part-*
           merge-multiple: true
-          path: ./shards
+          path: work/shards
 
-      # Забираем уже опубликованный schedule.json (если есть) для сравнения.
-      - name: Fetch existing schedule.json from data branch
+      # Заранее подтягиваем уже опубликованный schedule.json
+      # (для сравнения «изменилось / нет»), НЕ выходя из ./work/.
+      - name: Fetch existing schedule.json (if any)
         run: |
           set -euo pipefail
-          mkdir -p existing
+          mkdir -p work/existing
           if git ls-remote --exit-code --heads origin data > /dev/null 2>&1; then
             git fetch origin data --depth=1
-            git show origin/data:schedule.json > existing/schedule.json 2>/dev/null || true
+            git show origin/data:schedule.json > work/existing/schedule.json 2>/dev/null || true
           fi
-          ls -la existing || true
+          ls -la work/existing || true
 
-      - name: Merge shards -> schedule.json
+      - name: Merge shards -> work/schedule.json
         id: merge
+        env:
+          WORK_DIR: ${{ github.workspace }}/work
         run: python parser/merge_schedule.py
 
       - name: Push to data branch
@@ -101,22 +104,28 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          cp schedule.json /tmp/schedule.json
-
+          # 1. Переключаемся на data ДО того, как положим что-либо в корень.
           if git ls-remote --exit-code --heads origin data > /dev/null 2>&1; then
             git fetch origin data --depth=1
+            # На всякий случай сносим untracked schedule.json из корня,
+            # если он там каким-то образом оказался.
+            rm -f schedule.json
             git checkout -B data origin/data
           else
+            rm -f schedule.json
             git checkout --orphan data
             git rm -rf . >/dev/null 2>&1 || true
           fi
 
-          # Очистить рабочую директорию, не трогая .git
+          # 2. Очищаем рабочую директорию от всего, кроме .git и work/.
           find . -mindepth 1 -maxdepth 1 \
                -not -name '.git' \
+               -not -name 'work' \
                -exec rm -rf {} + || true
 
-          cp /tmp/schedule.json ./schedule.json
+          # 3. Кладём итог в корень ветки data (единственный файл, который
+          #    должен оказаться в ветке).
+          cp work/schedule.json ./schedule.json
           git add schedule.json
 
           if git diff --cached --quiet; then

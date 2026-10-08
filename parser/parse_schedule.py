@@ -11,10 +11,8 @@
     даже для заочников. Всегда используем именно это значение.
   - В строковых полях много паддинга пробелами — везде strip().
 
-Результат шарда — компактный JSON:
-  { "shard": N, "totalShards": M,
-    "groups": { "<group>": [ <lesson>, ... ], ... },
-    "failures": { "<group>": "<error repr>", ... } }
+Берём только группы, чьё имя состоит РОВНО из 4 цифр ("1101", "2210").
+Группы вида "12106", "23303" и т.п. (5+ цифр) отбрасываем.
 """
 
 from __future__ import annotations
@@ -23,6 +21,7 @@ import asyncio
 import json
 import os
 import random
+import re
 import sys
 from typing import Any
 
@@ -64,6 +63,9 @@ MIN_DELAY = 1.0
 MAX_DELAY = 2.5
 MAX_RETRIES = 3
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
+
+# Группа ровно из 4 цифр: 1101, 2210, 4199, ...
+GROUP_NAME_RE = re.compile(r"^\d{4}$")
 
 
 # ─────────────────────────── HTTP ───────────────────────────
@@ -143,7 +145,9 @@ def _s(value: Any) -> str:
     """Строка без паддинга пробелами (в ответах Лайфрея он повсюду)."""
     if value is None:
         return ""
-    return " ".join(str(value).split())   # схлопывает и вед. и хвост. пробелы
+    # split() без аргумента схлопывает любые последовательности пробельных
+    # символов (в т.ч. \xa0) и обрезает края; join обратно одним пробелом.
+    return " ".join(str(value).split())
 
 
 def _parse_dates(raw: str) -> list[str]:
@@ -181,9 +185,11 @@ def normalize_schedule(raw: dict | list) -> list[dict]:
 
     lessons = [normalize_lesson(x) for x in items if isinstance(x, dict)]
 
-    # сортировка: день, время — детерминированный результат для сравнения
-    lessons.sort(key=lambda x: (x.get("d", ""), x.get("t", ""),
-                                x.get("s", ""), x.get("p", "")))
+    # сортировка: день, время, дисциплина, преподаватель — детерминированный
+    # порядок, чтобы сравнение «изменилось / нет» было корректным.
+    lessons.sort(key=lambda x: (
+        x.get("d", ""), x.get("t", ""), x.get("s", ""), x.get("p", ""),
+    ))
     return lessons
 
 
@@ -195,10 +201,13 @@ async def process_shard(shard_index: int, total_shards: int, output_path: str) -
         all_groups = await get_all_groups(session)
         print(f"[shard {shard_index}] total groups: {len(all_groups)}")
 
-        # шардинг по стабильному id, а не по индексу
+        # 1) фильтруем только группы из 4 цифр
+        # 2) шардим по стабильному id, а не по индексу
         my_groups = [
             g for g in all_groups
-            if isinstance(g.get("id"), int) and (g["id"] % total_shards) == shard_index
+            if isinstance(g.get("id"), int)
+            and GROUP_NAME_RE.match(_s(g.get("group")))
+            and (g["id"] % total_shards) == shard_index
         ]
         print(f"[shard {shard_index}] groups in shard: {len(my_groups)}")
 
@@ -241,9 +250,11 @@ async def process_shard(shard_index: int, total_shards: int, output_path: str) -
 def main() -> None:
     shard_index = int(os.environ["SHARD_INDEX"])
     total_shards = int(os.environ["TOTAL_SHARDS"])
-    output_dir = os.environ.get(
-        "OUTPUT_DIR", os.path.dirname(os.path.abspath(__file__))
-    )
+
+    # ВАЖНО: пишем результат в ./work/, а не в корень репозитория,
+    # чтобы untracked-файл не конфликтовал с `git checkout data`.
+    output_dir = os.environ.get("WORK_DIR", "work")
+    os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f"schedule-part-{shard_index}.json")
 
     print(f"start shard {shard_index}/{total_shards} -> {output_path}")

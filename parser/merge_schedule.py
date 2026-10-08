@@ -5,15 +5,14 @@
   - Падает, если пришло меньше шардов, чем ожидалось (защита от
     публикации частичного датасета).
   - Сравнивает результат с уже опубликованным schedule.json и НЕ пишет
-    файл, если расписание не изменилось. Это защищает от лишних коммитов
-    и от лишних перезагрузок на клиенте.
+    файл, если расписание не изменилось. Защищает от лишних коммитов
+    и от лишних перезагрузок у клиента.
   - Все поля уже нормализованы в шардах (strip сделан в parse_schedule.py).
-  - В итоговый файл кладём только { meta, groups }.
+  - Пишет только { meta, groups } в ./work/schedule.json.
 """
 
 from __future__ import annotations
 
-import glob
 import hashlib
 import json
 import os
@@ -21,24 +20,28 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-SHARDS_DIR = Path("shards")
-OUT_FILE = Path("schedule.json")
-EXISTING_FILE = Path("existing/schedule.json")   # куда workflow выкачает data/schedule.json
+WORK_DIR      = Path(os.environ.get("WORK_DIR", "work"))
+SHARDS_DIR    = WORK_DIR / "shards"
+OUT_FILE      = WORK_DIR / "schedule.json"
+EXISTING_FILE = WORK_DIR / "existing" / "schedule.json"
 
 
 def canonical_groups(groups: dict) -> str:
     """Стабильное строковое представление содержимого для сравнения.
 
-    Сортируем группы по имени, внутри — уже отсортированные занятия.
+    Сортируем группы по имени, ключи внутри — sort_keys=True.
     Это исключает ложные «изменения» из-за разного порядка ключей.
     """
     normalized = {g: groups[g] for g in sorted(groups)}
-    payload = json.dumps(normalized, ensure_ascii=False, separators=(",", ":"),
-                         sort_keys=True)
-    return payload
+    return json.dumps(
+        normalized, ensure_ascii=False, separators=(",", ":"), sort_keys=True,
+    )
 
 
 def main() -> int:
+    WORK_DIR.mkdir(parents=True, exist_ok=True)
+    SHARDS_DIR.mkdir(parents=True, exist_ok=True)
+
     shard_files = sorted(SHARDS_DIR.glob("schedule-part-*.json"))
     print(f"shard files found: {len(shard_files)}")
 
@@ -48,7 +51,7 @@ def main() -> int:
 
     groups: dict[str, list[dict]] = {}
     failures: dict[str, str] = {}
-    total_shards = None
+    total_shards: int | None = None
 
     for path in shard_files:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -115,7 +118,6 @@ def main() -> int:
         "lessonsCount": lessons_total,
         "failuresCount": len(failures),
     }
-    # failures не отдаём клиенту, но полезно видеть в логах
     if failures:
         print(f"WARNING: {len(failures)} failures", file=sys.stderr)
         for name, err in list(failures.items())[:10]:
