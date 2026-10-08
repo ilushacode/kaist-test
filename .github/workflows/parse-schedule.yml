@@ -6,7 +6,6 @@ on:
     - cron: "0 3 * * *"
   workflow_dispatch: # ручной запуск
 
-# Разрешаем пуш в ветку data
 permissions:
   contents: write
 
@@ -37,17 +36,17 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
+          cache-dependency-path: parser/requirements.txt
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install aiohttp
+        run: pip install -r parser/requirements.txt
 
       - name: Run shard ${{ matrix.shard }}
         working-directory: parser
         env:
           SHARD_INDEX: ${{ matrix.shard }}
           TOTAL_SHARDS: 20
+          OUTPUT_DIR: ${{ github.workspace }}
         run: python parse_schedule.py
 
       - name: Upload shard result
@@ -66,7 +65,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout (для доступа к .git)
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Download all shard artifacts
@@ -105,25 +104,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Настраиваем git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Сохраняем файл и переключаемся на ветку data
           cp schedule.json /tmp/schedule.json
 
-          # Создаём или переключаемся на ветку data
           git fetch origin data || true
           git checkout data 2>/dev/null || git checkout --orphan data
 
-          # Очищаем ветку от старых файлов (кроме .git)
           git rm -rf . 2>/dev/null || true
           find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} + 2>/dev/null || true
 
-          # Копируем новый JSON
           cp /tmp/schedule.json ./schedule.json
           git add schedule.json
 
-          # Коммитим и пушим
           git commit -m "Update schedule: $(date -u '+%Y-%m-%d %H:%M UTC')" || echo "No changes"
           git push origin data --force
