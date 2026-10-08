@@ -2,16 +2,15 @@ name: Parse Schedule
 
 on:
   schedule:
-    # Каждый день в 03:00 UTC (06:00 МСК)
-    - cron: "0 3 * * *"
-  workflow_dispatch: # ручной запуск
+    - cron: "0 3 * * *"        # 03:00 UTC = 06:00 MSK
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: "parse-schedule"
-  cancel-in-progress: false
+  group: parse-schedule
+  cancel-in-progress: true
 
 jobs:
   # ─────────────────────────────────────────────────────────
@@ -19,13 +18,13 @@ jobs:
   # ─────────────────────────────────────────────────────────
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 8          # мягче к серверу КАИ
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
 
     steps:
       - name: Checkout
@@ -55,17 +54,19 @@ jobs:
           name: schedule-part-${{ matrix.shard }}
           path: schedule-part-${{ matrix.shard }}.json
           retention-days: 1
+          if-no-files-found: error
 
   # ─────────────────────────────────────────────────────────
-  # Фаза 2: сборка всех шардов в один JSON и пуш в ветку data
+  # Фаза 2: сборка, сравнение с уже опубликованным, пуш
   # ─────────────────────────────────────────────────────────
   merge-and-push:
     needs: scrape
+    if: always() && needs.scrape.result != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout
+      - name: Checkout (source)
         uses: actions/checkout@v4
 
       - name: Download all shard artifacts
@@ -75,48 +76,57 @@ jobs:
           merge-multiple: true
           path: ./shards
 
-      - name: Merge shards into single JSON
+      # Забираем уже опубликованный schedule.json (если есть) для сравнения.
+      - name: Fetch existing schedule.json from data branch
         run: |
-          python - <<'EOF'
-          import json
-          import glob
-          import os
+          set -euo pipefail
+          mkdir -p existing
+          if git ls-remote --exit-code --heads origin data > /dev/null 2>&1; then
+            git fetch origin data --depth=1
+            git show origin/data:schedule.json > existing/schedule.json 2>/dev/null || true
+          fi
+          ls -la existing || true
 
-          merged = {}
-          files = sorted(glob.glob("shards/schedule-part-*.json"))
-          print(f"Найдено файлов шардов: {len(files)}")
-
-          for path in files:
-              with open(path, encoding="utf-8") as f:
-                  data = json.load(f)
-              merged.update(data)
-              print(f"  {os.path.basename(path)}: {len(data)} групп")
-
-          print(f"Всего групп в итоге: {len(merged)}")
-
-          with open("schedule.json", "w", encoding="utf-8") as f:
-              json.dump(merged, f, ensure_ascii=False, separators=(",", ":"))
-
-          print("schedule.json записан")
-          EOF
+      - name: Merge shards -> schedule.json
+        id: merge
+        run: python parser/merge_schedule.py
 
       - name: Push to data branch
+        if: steps.merge.outputs.changed == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
+          set -euo pipefail
+
+          git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           cp schedule.json /tmp/schedule.json
 
-          git fetch origin data || true
-          git checkout data 2>/dev/null || git checkout --orphan data
+          if git ls-remote --exit-code --heads origin data > /dev/null 2>&1; then
+            git fetch origin data --depth=1
+            git checkout -B data origin/data
+          else
+            git checkout --orphan data
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
 
-          git rm -rf . 2>/dev/null || true
-          find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} + 2>/dev/null || true
+          # Очистить рабочую директорию, не трогая .git
+          find . -mindepth 1 -maxdepth 1 \
+               -not -name '.git' \
+               -exec rm -rf {} + || true
 
           cp /tmp/schedule.json ./schedule.json
           git add schedule.json
 
-          git commit -m "Update schedule: $(date -u '+%Y-%m-%d %H:%M UTC')" || echo "No changes"
+          if git diff --cached --quiet; then
+            echo "no staged changes — skip push"
+            exit 0
+          fi
+
+          git commit -m "schedule: $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push origin data --force
+
+      - name: No changes
+        if: steps.merge.outputs.changed == 'false'
+        run: echo "Расписание не изменилось — ничего не пушим."
