@@ -1,10 +1,14 @@
-// vite.config.js
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// 👇 Имя репозитория на GitHub (без слэшей).
+// Должно точно совпадать с названием репо: https://github.com/ilushacode/<repoName>
+const repoName = 'kaist'
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: `/${repoName}/`,
   plugins: [
     react(),
     VitePWA({
@@ -24,8 +28,8 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/',
-        scope: '/',
+        start_url: '.',
+        scope: '.',
         lang: 'ru',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
@@ -45,7 +49,7 @@ export default defineConfig({
         ],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
 
-        navigateFallback: '/index.html',
+        navigateFallback: `/${repoName}/index.html`,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
