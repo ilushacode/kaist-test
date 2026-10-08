@@ -1,0 +1,129 @@
+name: Parse Schedule
+
+on:
+  schedule:
+    # Каждый день в 03:00 UTC (06:00 МСК)
+    - cron: "0 3 * * *"
+  workflow_dispatch: # ручной запуск
+
+# Разрешаем пуш в ветку data
+permissions:
+  contents: write
+
+concurrency:
+  group: "parse-schedule"
+  cancel-in-progress: false
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # Фаза 1: параллельный обход 909 групп в 20 шардов
+  # ─────────────────────────────────────────────────────────
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install aiohttp
+
+      - name: Run shard ${{ matrix.shard }}
+        working-directory: parser
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+          TOTAL_SHARDS: 20
+        run: python parse_schedule.py
+
+      - name: Upload shard result
+        uses: actions/upload-artifact@v4
+        with:
+          name: schedule-part-${{ matrix.shard }}
+          path: schedule-part-${{ matrix.shard }}.json
+          retention-days: 1
+
+  # ─────────────────────────────────────────────────────────
+  # Фаза 2: сборка всех шардов в один JSON и пуш в ветку data
+  # ─────────────────────────────────────────────────────────
+  merge-and-push:
+    needs: scrape
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout (для доступа к .git)
+        uses: actions/checkout@v4
+
+      - name: Download all shard artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: schedule-part-*
+          merge-multiple: true
+          path: ./shards
+
+      - name: Merge shards into single JSON
+        run: |
+          python - <<'EOF'
+          import json
+          import glob
+          import os
+
+          merged = {}
+          files = sorted(glob.glob("shards/schedule-part-*.json"))
+          print(f"Найдено файлов шардов: {len(files)}")
+
+          for path in files:
+              with open(path, encoding="utf-8") as f:
+                  data = json.load(f)
+              merged.update(data)
+              print(f"  {os.path.basename(path)}: {len(data)} групп")
+
+          print(f"Всего групп в итоге: {len(merged)}")
+
+          with open("schedule.json", "w", encoding="utf-8") as f:
+              json.dump(merged, f, ensure_ascii=False, separators=(",", ":"))
+
+          print("schedule.json записан")
+          EOF
+
+      - name: Push to data branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Настраиваем git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Сохраняем файл и переключаемся на ветку data
+          cp schedule.json /tmp/schedule.json
+
+          # Создаём или переключаемся на ветку data
+          git fetch origin data || true
+          git checkout data 2>/dev/null || git checkout --orphan data
+
+          # Очищаем ветку от старых файлов (кроме .git)
+          git rm -rf . 2>/dev/null || true
+          find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} + 2>/dev/null || true
+
+          # Копируем новый JSON
+          cp /tmp/schedule.json ./schedule.json
+          git add schedule.json
+
+          # Коммитим и пушим
+          git commit -m "Update schedule: $(date -u '+%Y-%m-%d %H:%M UTC')" || echo "No changes"
+          git push origin data --force
