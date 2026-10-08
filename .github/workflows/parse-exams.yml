@@ -1,0 +1,140 @@
+name: Parse Exams
+
+on:
+  schedule:
+    # Каждую субботу 03:00 UTC = 06:00 MSK
+    - cron: "0 3 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: parse-exams
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # Фаза 1: параллельный обход групп в 20 шардов
+  # ─────────────────────────────────────────────────────────
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: parser/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r parser/requirements.txt
+
+      - name: Run exams shard ${{ matrix.shard }}
+        working-directory: parser
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+          TOTAL_SHARDS: 20
+          WORK_DIR: ${{ github.workspace }}/work
+        run: python parse_exams.py
+
+      - name: Upload shard result
+        uses: actions/upload-artifact@v4
+        with:
+          name: exams-part-${{ matrix.shard }}
+          path: work/exams-part-${{ matrix.shard }}.json
+          retention-days: 1
+          if-no-files-found: error
+
+  # ─────────────────────────────────────────────────────────
+  # Фаза 2: сборка, сравнение, force-push в data
+  # ─────────────────────────────────────────────────────────
+  merge-and-push:
+    needs: scrape
+    if: always() && needs.scrape.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download all shard artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: exams-part-*
+          merge-multiple: true
+          path: work/shards-exams
+
+      # Подтягиваем уже опубликованный exams.json из ветки data.
+      - name: Fetch existing exams.json (if any)
+        run: |
+          set -euo pipefail
+          mkdir -p work/existing
+          if git ls-remote --exit-code --heads origin data > /dev/null 2>&1; then
+            git fetch origin data --depth=1
+            git show origin/data:exams.json > work/existing/exams.json 2>/dev/null || true
+          fi
+          ls -la work/existing || true
+
+      - name: Merge shards -> work/exams.json
+        id: merge
+        env:
+          WORK_DIR: ${{ github.workspace }}/work
+        run: python parser/merge_exams.py
+
+      - name: Push to data branch
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin data > /dev/null 2>&1; then
+            git fetch origin data --depth=1
+            rm -f exams.json
+            git checkout -B data origin/data
+          else
+            rm -f exams.json
+            git checkout --orphan data
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          # ВАЖНО: сохраняем оба файла — schedule.json и exams.json,
+          # а не только exams.json. Иначе перетрём расписание пар.
+          find . -mindepth 1 -maxdepth 1 \
+               -not -name '.git' \
+               -not -name 'work' \
+               -exec rm -rf {} + || true
+
+          cp work/exams.json ./exams.json
+          git add exams.json
+
+          # schedule.json не трогаем — если он уже в ветке, он останется.
+          # Если ветка новая и его нет — это ок, отдельный воркфлоу его положит.
+
+          if git diff --cached --quiet; then
+            echo "no staged changes — skip push"
+            exit 0
+          fi
+
+          git commit -m "exams: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push origin data --force
+
+      - name: No changes
+        if: steps.merge.outputs.changed == 'false'
+        run: echo "Экзамены не изменились — ничего не пушим."
